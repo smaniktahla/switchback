@@ -43,7 +43,7 @@ Ranking ordinary roads by their longest run at or above 150 deg/km, with no rati
 
 ## Ground truth and what it changes (added 2026-10-18)
 
-Salil has ridden US-211 Sperryville to Thornton Gap many times and calls it his favorite short twisty hop in the DC Metro area. He has not ridden the Dragon, and has not ridden the Cherohala as far as we know, so those two are acclaimed but unrated for him: they are useful as other styles of road, not as targets for his taste.
+The project owner has ridden US-211 Sperryville to Thornton Gap many times and calls it his favorite short twisty hop in the DC Metro area. He has not ridden the Dragon, and has not ridden the Cherohala as far as we know, so those two are acclaimed but unrated for him: they are useful as other styles of road, not as targets for his taste.
 
 - His one personal reference is **short**: the twisty part is the 4.8 km climb (394 deg/km, 3.4 turns >= 45 deg per km, median radius 144 m, 5% of length under 50 m, 25% straight, steady 6% grade, no flat spots). The "sustained length" idea above came from roads he has not ridden, so treat it as a hypothesis, not a requirement.
 - A scan for his taste should therefore look for **3-10 km stretches near DC** that resemble the US-211 climb, with the Dragon and Cherohala as optional "different flavor" queries.

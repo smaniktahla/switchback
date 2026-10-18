@@ -1,4 +1,4 @@
-"""Scan a region for 3-10 km stretches that resemble the US-211 climb (Salil's reference ride).
+"""Scan a region for 3-10 km stretches that resemble the US-211 climb (the owner's reference ride).
 
 Paved public roads only (see switchback.scan.read_region). A stretch is a run of 1 km windows
 (stride 500 m) whose heading change, median radius, turn density and straight share all fall

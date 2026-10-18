@@ -1,4 +1,4 @@
-# Run on AI1 (plenty of RAM). Mount: region.osm.pbf, graphhopper-web-11.1.jar, config.yml, graph-cache/ in this dir.
+# Run on any host with ~8 GB RAM to spare. Mount: region.osm.pbf, graphhopper-web-11.1.jar, config.yml, graph-cache/ in this dir.
 services:
   graphhopper:
     image: eclipse-temurin:21-jre

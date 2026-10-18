@@ -3,7 +3,7 @@
 Route = start -> [chosen segment, drawn from its own OSM geometry] -> GraphHopper connector -> next segment ... -> end.
 Only the connectors come from the routing engine, so the chosen roads' geometry is preserved exactly in the GPX.
 
-  python app/server.py            # http://0.0.0.0:8940 ; GraphHopper at $SWITCHBACK_GH (default AI1)
+  python app/server.py            # http://0.0.0.0:8940 ; GraphHopper at $SWITCHBACK_GH (default http://localhost:8989)
 """
 import json
 import math
@@ -14,7 +14,7 @@ from pathlib import Path
 from xml.sax.saxutils import escape
 
 HERE = Path(__file__).resolve().parent
-GH = os.environ.get("SWITCHBACK_GH", "http://10.10.10.105:8989")
+GH = os.environ.get("SWITCHBACK_GH", "http://localhost:8989")
 PORT = int(os.environ.get("SWITCHBACK_PORT", "8940"))
 DATA = json.load(open(HERE / "data" / "candidates.json"))
 BY_ID = {c["id"]: c for c in DATA["candidates"]}

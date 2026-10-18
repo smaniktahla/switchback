@@ -76,7 +76,7 @@ def osm_tower_edges(pbf):
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    tunnel = subprocess.Popen(["ssh", "-N", "-o", "ExitOnForwardFailure=yes", "-L", "18989:127.0.0.1:8989", "ubuntu-box"])
+    tunnel = subprocess.Popen(["ssh", "-N", "-o", "ExitOnForwardFailure=yes", "-L", "18989:127.0.0.1:8989", os.environ.get("SWITCHBACK_GH_SSH_HOST", "localhost")])
     try:
         for _ in range(20):
             try:

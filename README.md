@@ -1,6 +1,5 @@
 # Switchback
 
-
 Phase 1: measure what makes a road enjoyable to ride, starting from roads riders rate highly.
 Measurement and validation only — no route generation.
 
@@ -21,9 +20,14 @@ Not for publication yet. `data/` is gitignored.
   `master` (12.0-SNAPSHOT) moved it to a post-build graph pass that uses 3D beeline. Compare against 11.1.
 
 ## MVP: find a road, plan a ride, export GPX
-Open **http://10.10.10.226:8940** (user service `switchback`, AI2). Search or click a start point, browse ranked
+Run `python app/server.py` and open **http://localhost:8940**. Search or click a start point, browse ranked
 roads within a radius, add roads to "My ride", Build route, Download GPX.
 - `scripts/mvp_scan.py` -> `scripts/mvp_build.py` regenerate `app/data/candidates.json` (discovery bounds and default weights in `config/mvp.yml`; heuristics in `src/switchback/rank.py`).
 - Coverage: VA/MD/WV within ~110 mi of DC (the cached Phase-1 region). Traffic from VDOT/SHA layers (WV: none). Unknown = neutral.
-- Route = start -> chosen road (drawn from its own OSM geometry, so the GPX keeps it exactly) -> GraphHopper connector -> next road ... GraphHopper 11.1 runs on AI1 (`deploy/graphhopper/`, port 8989, profiles `car` = direct, `motorcycle` = twisty connectors).
+- Route = start -> chosen road (drawn from its own OSM geometry, so the GPX keeps it exactly) -> GraphHopper connector -> next road ... GraphHopper 11.1 runs in a container (`deploy/graphhopper/`, port 8989, set `SWITCHBACK_GH` to its URL; profiles `car` = direct, `motorcycle` = twisty connectors).
 - Visibility and live conditions are deliberately not part of the MVP.
+
+Quick start: install `requirements.txt`, download Geofabrik extracts listed in `config/sources.yml` (+ DC), run the `scripts/mvp_*.py` scripts to rebuild
+`app/data/candidates.json` (a prebuilt copy is included), start GraphHopper from `deploy/graphhopper/` and then the server.
+
+Map data © OpenStreetMap contributors (ODbL); traffic counts from VDOT and MDOT SHA public layers. Home location is stored only in your browser.

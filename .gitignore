@@ -5,3 +5,7 @@ __pycache__/
 *.pyc
 *.pbf
 data_private/
+
+# internal / personal
+docs/HANDOFF.md
+data_in/ratings.csv
