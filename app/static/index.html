@@ -75,6 +75,7 @@
       <div id="items" class="mute">Add roads from the list or by clicking one on the map.</div>
       <div class="row">
         <label><input type="checkbox" id="loop" checked> Return home</label>
+        <label title="When two chosen pieces are on the same road (e.g. Skyline Drive), ride that road between them instead of routing around it"><input type="checkbox" id="same" checked> Stay on same road</label>
         <button id="finishbtn" title="Click the map to end the ride somewhere other than the start">Set finish</button>
         <select id="conn" title="How to get between your chosen roads: fastest, or detour onto curvier roads"><option value="direct">Direct</option><option value="twisty">More twisties!</option></select>
         <button id="nextroad" disabled>Find next road</button>
@@ -193,7 +194,7 @@ function showTotals(j) {
   const t = $("totals");
   if (!j) { t.style.display = "none"; return; }
   t.style.display = "block";
-  t.innerHTML = `${Math.round(j.km)} km · ~${hm(j.minutes)}<small>${finish ? "start → finish" : "home → home"} · ${Math.round(j.segment_km)} km chosen roads</small>`;
+  t.innerHTML = `${Math.round(j.km)} km · ~${hm(j.minutes)}<small>${finish ? "start → finish" : "home → home"} · ${Math.round(j.segment_km + (j.along_km || 0))} km chosen roads</small>`;
   t.title = "Connector times from the routing engine; chosen roads at the tagged speed limit (35 mph if untagged) x 0.85. No stops, fuel or traffic.";
 }
 function invalidate() {
@@ -233,18 +234,18 @@ async function buildRoute(fit = true) {
   const seq = ++buildSeq, hadRoute = !!route;
   $("build").disabled = true; $("msg").className = "mute"; $("msg").textContent = "Routing connectors…";
   try {
-    const r = await fetch("/api/route", {method:"POST", body: JSON.stringify({start, end: finish, loop: $("loop").checked && !finish, connectors: $("conn").value, segments: ride})});
+    const r = await fetch("/api/route", {method:"POST", body: JSON.stringify({start, end: finish, loop: $("loop").checked && !finish, connectors: $("conn").value, same_road: $("same").checked, segments: ride})});
     const j = await r.json(); if (!r.ok) throw new Error(j.error);
     if (seq !== buildSeq) return;   // a newer change superseded this request
     route = j; layerRoute.clearLayers();
     for (const p of j.parts) {
       const ll = j.points.slice(p.i0, p.i1 + 1).map(q => [q[1], q[0]]);
       const col = p.idx >= 0 ? rideColor(p.idx) : "#64748b";
-      if (p.kind === "segment") L.polyline(ll, {color:"#fff", weight:12, opacity:.95, interactive:false}).addTo(layerRoute);
-      L.polyline(ll, p.kind === "segment" ? {color: col, weight:7, opacity:1, bubblingMouseEvents:false} : {color: col, weight:4, opacity:.85, dashArray:"8 6", bubblingMouseEvents:false}).bindTooltip(`${p.label}: ${p.km} km`).addTo(layerRoute);
+      if (p.kind === "segment" || p.kind === "along") L.polyline(ll, {color:"#fff", weight: p.kind === "along" ? 9 : 12, opacity:.95, interactive:false}).addTo(layerRoute);
+      L.polyline(ll, p.kind === "segment" ? {color: col, weight:7, opacity:1, bubblingMouseEvents:false} : p.kind === "along" ? {color: col, weight:5, opacity:1, bubblingMouseEvents:false} : {color: col, weight:4, opacity:.85, dashArray:"8 6", bubblingMouseEvents:false}).bindTooltip(`${p.label}: ${p.km} km`).addTo(layerRoute);
     }
     if (fit || !hadRoute) map.fitBounds(L.polyline(j.points.map(q => [q[1], q[0]])).getBounds(), {padding:[40,40]});
-    $("msg").textContent = `${j.km} km total: ${j.segment_km} km on your chosen roads + ${j.connector_km} km of connectors (dashed, coloured by the road they lead to; grey = way home).`;
+    $("msg").textContent = `${j.km} km total: ${j.segment_km} km on your chosen roads${j.along_km ? ` + ${j.along_km} km along the same road between pieces` : ""} + ${j.connector_km} km of connectors (dashed, coloured by the road they lead to; grey = way home).`;
     $("dl").disabled = false; showTotals(j);
   } catch (e) { if (seq !== buildSeq) return; route = null; showTotals(null); layerRoute.clearLayers(); $("dl").disabled = true; $("msg").className = "err"; $("msg").textContent = "Route failed: " + e.message; }
   $("build").disabled = !(ride.length && start);
@@ -342,7 +343,7 @@ $("undo").onclick = undo;
 $("reset").onclick = () => { snap(); ride = []; focusId = null; suggestIdx = 0; layerEvents.clearLayers(); $("sugg").style.display = "none"; invalidate(); renderRide(); renderList(); };
 document.addEventListener("keydown", e => { if ((e.ctrlKey || e.metaKey) && e.key === "z" && !/INPUT|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); undo(); } });
 $("build").onclick = () => buildRoute(true); $("dl").onclick = download;
-$("loop").onchange = () => { if ($("loop").checked && finish) setFinish(null); else invalidate(); }; $("conn").onchange = invalidate;
+$("loop").onchange = () => { if ($("loop").checked && finish) setFinish(null); else invalidate(); }; $("conn").onchange = invalidate; $("same").onchange = invalidate;
 async function search() {
   const q = $("q").value.trim(); if (!q) return;
   const r = await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q=" + encodeURIComponent(q));

@@ -18,6 +18,47 @@ GH = os.environ.get("SWITCHBACK_GH", "http://localhost:8989")
 PORT = int(os.environ.get("SWITCHBACK_PORT", "8940"))
 DATA = json.load(open(HERE / "data" / "candidates.json"))
 BY_ID = {c["id"]: c for c in DATA["candidates"]}
+ROADS = json.load(open(HERE / "data" / "roads.json")) if (HERE / "data" / "roads.json").exists() else {}
+_GRAPHS = {}
+
+
+def road_graph(fam):
+    if fam not in _GRAPHS:
+        adj, loc = {}, {}
+        for w in ROADS.get(fam, []):
+            for n, c in zip(w["n"], w["c"]):
+                loc[n] = c
+            for a, b, ca, cb in zip(w["n"], w["n"][1:], w["c"], w["c"][1:]):
+                d = hav_m(ca, cb)
+                adj.setdefault(a, []).append((b, d)); adj.setdefault(b, []).append((a, d))
+        _GRAPHS[fam] = (adj, loc)
+    return _GRAPHS[fam]
+
+
+def along_road(fam, a, b, max_m=250000.0, snap_m=300.0):
+    """Path (coords, metres) from a to b following only the road family's own ways, or None."""
+    import heapq
+    adj, loc = road_graph(fam)
+    if not loc:
+        return None
+    near = lambda p: min(loc, key=lambda n: hav_m(loc[n], p))
+    na, nb = near(a), near(b)
+    if hav_m(loc[na], a) > snap_m or hav_m(loc[nb], b) > snap_m:
+        return None
+    dist, prev, pq = {na: 0.0}, {}, [(0.0, na)]
+    while pq:
+        d, n = heapq.heappop(pq)
+        if n == nb:
+            path = [n]
+            while n in prev:
+                n = prev[n]; path.append(n)
+            return [loc[i] for i in path[::-1]], d
+        if d > dist.get(n, 1e18) or d > max_m:
+            continue
+        for m, w in adj.get(n, ()):
+            if d + w < dist.get(m, 1e18):
+                dist[m] = d + w; prev[m] = n; heapq.heappush(pq, (d + w, m))
+    return None
 
 
 def hav_m(a, b):
@@ -53,15 +94,20 @@ def build(req):
         i0 = len(pts); pts.extend(coords)
         parts.append({"kind": kind, "label": label, "idx": idx, "ext": ext, "secs": secs or 0, "i0": i0, "i1": len(pts) - 1, "km": round(dist / 1000, 2), "min": None if secs is None else round(secs / 60)})
 
-    cur = start
+    cur, prev_c = start, None
     for n, s in enumerate(req["segments"]):
         c = BY_ID[s["id"]]
         line = c["line"][::-1] if s.get("reverse") else c["line"]
-        if hav_m(cur, line[0]) > 30:
+        mps = (c["metrics"].get("speed_median_mph") or 35) * 0.44704 * 0.85   # tagged limit (35 mph if untagged) x 0.85
+        joined = None
+        if prev_c and req.get("same_road", True) and prev_c.get("family") == c.get("family") and hav_m(cur, line[0]) > 30:
+            joined = along_road(c["family"], cur, line[0])      # ride the road itself between the two pieces
+        if joined:
+            add("along", f"along {c['name']}", joined[0], joined[1], secs=joined[1] / mps, idx=n)
+        elif hav_m(cur, line[0]) > 30:
             co, d, t = gh_route(cur, line[0], prof)
             add("connector", f"to {c['name']}", co, d, t, idx=n)
         d = sum(hav_m(a, b) for a, b in zip(line, line[1:]))
-        mps = (c["metrics"].get("speed_median_mph") or 35) * 0.44704 * 0.85   # tagged limit (35 mph if untagged) x 0.85
         add("segment", f"{c['name']} {c['ref']}".strip(), line, d, secs=d / mps, idx=n)
         cur = line[-1]
         e = (c.get("ext_start") if s.get("reverse") else c.get("ext_end")) if s.get("ext") else None
@@ -70,11 +116,13 @@ def build(req):
             xd = sum(hav_m(a, b) for a, b in zip(xl, xl[1:]))
             add("segment", f"{c['name']} (continued)", xl, xd, secs=xd / mps, idx=n, ext=True)
             cur = xl[-1]
+        prev_c = c
     if end and hav_m(cur, end) > 30:
         co, d, t = gh_route(cur, end, prof)
         add("connector", "to finish", co, d, t)
     return {"points": pts, "parts": parts, "minutes": round(sum(p["secs"] for p in parts) / 60), "km": round(sum(p["km"] for p in parts), 1),
             "connector_km": round(sum(p["km"] for p in parts if p["kind"] == "connector"), 1),
+            "along_km": round(sum(p["km"] for p in parts if p["kind"] == "along"), 1),
             "segment_km": round(sum(p["km"] for p in parts if p["kind"] == "segment"), 1)}
 
 
