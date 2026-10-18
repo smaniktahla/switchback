@@ -42,15 +42,19 @@
   .bar { height:5px; background:#eee; border-radius:2px; overflow:hidden; } .bar i { display:block; height:100%; background:#7c9a5e; }
   table.d { width:100%; font-size:12px; border-collapse:collapse; margin-top:6px; }
   table.d td { padding:1px 0; vertical-align:top; } table.d td:first-child { color:var(--mute); width:46%; }
-  #ride { border-top:2px solid var(--accent); background:#fffaf6; max-height:46%; overflow:auto; padding:8px 16px 12px; }
-  #ride h2 { margin:0 0 4px; font-size:14px; }
-  .item { display:flex; align-items:center; gap:6px; padding:4px 0; border-bottom:1px dashed var(--line); }
-  .item .n { flex:1; font-size:13px; } .item button { padding:1px 6px; font-size:12px; }
+  #ride { width:340px; flex:none; display:flex; flex-direction:column; border-left:2px solid var(--accent); background:#fffaf6; padding:12px 14px; overflow:auto; }
+  #ride h2 { margin:0 0 6px; font-size:15px; } #ride h2 .mute { font-weight:400; margin-top:2px; }
+  #items { flex:1; min-height:60px; overflow:auto; }
+  .ctl { display:flex; flex-direction:column; gap:8px; padding-top:10px; border-top:1px solid var(--line); margin-top:8px; }
+  .ctl label { display:flex; gap:6px; align-items:center; } .ctl button { width:100%; } .ctl .row button { width:auto; }
+  .card .tr { display:flex; align-items:center; gap:6px; flex:none; } .card .tr button { padding:1px 8px; font-size:12px; }
+  .item { display:flex; flex-wrap:wrap; align-items:center; gap:4px 6px; padding:6px 0; border-bottom:1px dashed var(--line); }
+  .item .n { flex:1 1 100%; font-size:13px; cursor:pointer; } .item button[data-a="ext"] { margin-right:auto; } .item button { padding:1px 6px; font-size:12px; }
   #msg { margin-top:6px; font-size:12px; } #msg.err { color:#b91c1c; }
   .leaflet-container { font:inherit; }
   #totals { position:absolute; z-index:1000; top:10px; left:50%; transform:translateX(-50%); background:rgba(255,255,255,.95); border:1px solid var(--line); border-radius:20px; padding:5px 16px; box-shadow:0 1px 4px rgba(0,0,0,.2); font-weight:600; white-space:nowrap; pointer-events:none; }
   #totals small { font-weight:400; color:var(--mute); margin-left:8px; }
-  @media (max-width:760px) { #app { flex-direction:column-reverse; } #side { width:100%; max-width:none; height:62%; } #map { height:38%; } }
+  @media (max-width:900px) { #app { flex-direction:column; } #map { order:1; height:34%; flex:none; } #side { order:2; width:100%; max-width:none; height:36%; border-right:0; } #ride { order:3; width:100%; height:30%; border-left:0; border-top:2px solid var(--accent); } }
 </style>
 </head>
 <body>
@@ -74,22 +78,22 @@
       </details>
       <div id="list"></div>
     </div>
-    <div id="ride">
-      <h2 style="display:flex;justify-content:space-between;align-items:center"><span>My ride <span class="mute" id="ridesum"></span></span><span><button id="undo" title="Undo the last change to the ride" disabled>↶ Undo</button> <button id="reset" title="Clear the ride and route (keeps your start point)">Reset ride</button></span></h2>
-      <div id="items" class="mute">Add roads from the list or by clicking one on the map.</div>
-      <div class="row">
-        <label><input type="checkbox" id="loop" checked> Return home</label>
-        <label title="When two chosen pieces are on the same road (e.g. Skyline Drive), ride that road between them instead of routing around it"><input type="checkbox" id="same" checked> Stay on same road</label>
-        <button id="finishbtn" title="Click the map to end the ride somewhere other than the start">Set finish</button>
-        <select id="conn" title="How to get between your chosen roads: fastest, or detour onto curvier roads"><option value="direct">Direct</option><option value="twisty">More twisties!</option></select>
-        <button id="nextroad" disabled>Find next road</button>
-        <button id="build" class="primary" disabled>Build route</button>
-        <button id="dl" disabled>Download GPX</button>
-      </div>
-      <div id="msg" class="mute"></div>
     </div>
-  </div>
   <div id="map"><div id="totals" style="display:none"></div></div>
+  <div id="ride">
+    <h2 style="display:flex;justify-content:space-between;align-items:center"><span>My ride <div class="mute" id="ridesum"></div></span><span style="white-space:nowrap"><button id="undo" title="Undo the last change to the ride" disabled>↶ Undo</button> <button id="reset" title="Clear the ride and route (keeps your start point)">Reset</button></span></h2>
+    <div id="items" class="mute">Add roads from the list or by clicking one on the map.</div>
+    <div class="ctl">
+      <label><input type="checkbox" id="loop" checked> Return home</label>
+      <label title="When two chosen pieces are on the same road (e.g. Skyline Drive), ride that road between them instead of routing around it"><input type="checkbox" id="same" checked> Stay on same road</label>
+      <div class="row" style="margin-top:2px"><button id="finishbtn" title="Click the map to end the ride somewhere other than the start">Set finish</button>
+        <select id="conn" title="How to get between your chosen roads: fastest, or detour onto curvier roads" style="flex:1"><option value="direct">Direct</option><option value="twisty">More twisties!</option></select></div>
+      <button id="nextroad" disabled>Find next road</button>
+      <button id="build" class="primary" disabled>Build route</button>
+      <button id="dl" disabled>Download GPX</button>
+    </div>
+    <div id="msg" class="mute"></div>
+  </div>
 </div>
 <script src="vendor/leaflet.js"></script>
 <script>
@@ -152,12 +156,11 @@ function renderList() {
     const f = fmt(c), el = document.createElement("div");
     el.className = "card" + (c.id === focusId ? " focus" : ""); const ri = ride.findIndex(x => x.id === c.id); if (ri >= 0) el.style.boxShadow = `inset 6px 0 0 ${rideColor(ri)}`; if (c.id === focusId) el.style.borderLeft = "5px solid var(--accent)"; el.dataset.id = c.id;
     const inRide = ride.some(x => x.id === c.id);
-    el.innerHTML = `<div class="t"><span>${c.name}${c.ref ? ` <span class="mute">${c.ref}</span>` : ""}</span><span class="badge" style="background:${colorFor(s)}">${Math.round(s*100)}</span></div>
+    el.innerHTML = `<div class="t"><span>${c.name}${c.ref ? ` <span class="mute">${c.ref}</span>` : ""}</span><span class="tr"><span class="badge" style="background:${colorFor(s)}">${Math.round(s*100)}</span><button data-add="${c.id}" ${inRide ? "disabled" : ""}>${inRide ? "In ride" : "Add to ride"}</button></span></div>
       <div class="mute">${c.where}${center ? ` · ${D(d, 0)} from search centre` : ""}</div>
       <div class="chips">${f.chips.map(x => `<span class="chip">${x}</span>`).join("")}${c.note ? `<span class="chip warn">${c.note}</span>` : ""}${c.surface.startsWith("untagged") ? `<span class="chip warn">surface untagged</span>` : ""}</div>
       <div class="bars">${COMP.map(k => `<div class="bar" title="${COMP_LABEL[k]} ${c.components[k].toFixed(2)}"><i style="width:${c.components[k]*100}%"></i></div>`).join("")}</div>
-      ${c.id === focusId ? `<table class="d">${f.rows.map(([a,b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join("")}</table>` : ""}
-      <div class="row"><button data-add="${c.id}" ${inRide ? "disabled" : ""}>${inRide ? "In ride" : "Add to ride"}</button></div>`;
+      ${c.id === focusId ? `<table class="d">${f.rows.map(([a,b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join("")}</table>` : ""}`;
     el.onclick = e => { if (e.target.dataset.add) { addToRide(c.id); e.stopPropagation(); } else focus(c.id, true); };
     $("list").appendChild(el);
   }
