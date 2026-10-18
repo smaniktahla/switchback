@@ -245,3 +245,6 @@ Always observe applicable laws, ride within sight distance and conditions, and v
 ---
 
 **Switchback — because the best part of the ride isn't always the destination.**
+
+## Accounts
+Multi-user by default: the first run prints a setup code for creating the admin; admins invite people with links. See `docs/ACCOUNTS.md`. Set `SWITCHBACK_AUTH=off` for single-user mode. Roadmap: `docs/ROADMAP.md`.
