@@ -1,6 +1,5 @@
 # Switchback
 
-**MVP (2026-10-18): research phase frozen; Switchback is now a ride planner.** See "MVP" below. Phase 1 code and findings are preserved.
 
 Phase 1: measure what makes a road enjoyable to ride, starting from roads riders rate highly.
 Measurement and validation only — no route generation.
