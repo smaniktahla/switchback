@@ -309,7 +309,7 @@ class H(SimpleHTTPRequestHandler):
                 if not AUTH_ON or STORE.user_count():
                     raise ApiError(409, "Setup is already done.")
                 if not STORE.check_setup_code(req.get("code")):
-                    raise ApiError(403, "Wrong setup code. Look for it in the server log or in the data folder.")
+                    raise ApiError(403, "Wrong setup code. Look for it in the server log.")
                 uid = STORE.create_user(req.get("username", ""), req.get("password", ""), "admin")
                 import_legacy_roads(uid); STORE.x("DELETE FROM settings WHERE k='setup_code'")
                 return ok_json(self, {"ok": True}, cookie=self.cookie(STORE.new_session(uid)))
