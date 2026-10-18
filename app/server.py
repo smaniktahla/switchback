@@ -7,8 +7,9 @@ Only the connectors come from the routing engine, so the chosen roads' geometry 
 """
 import json
 import math
-import sys
 import os
+import re
+import sys
 import urllib.request
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -19,29 +20,47 @@ GH = os.environ.get("SWITCHBACK_GH", "http://localhost:8989")
 PORT = int(os.environ.get("SWITCHBACK_PORT", "8940"))
 DATA = json.load(open(HERE / "data" / "candidates.json"))
 sys.path.insert(0, str(HERE.parent / "src"))
-CUSTOM_FILE = HERE.parent / "data_private" / "custom_roads.json"     # roads the user highlighted by hand (private, git-ignored)
+from store import ROAD_ID_BASE, ApiError, Store, check_password            # noqa: E402
+
+AUTH_ON = os.environ.get("SWITCHBACK_AUTH", "on").lower() != "off"      # off = single-user mode (desktop / localhost), everyone is the owner
+DATA_DIR = Path(os.environ.get("SWITCHBACK_DATA", HERE.parent / "data_private"))
+SECURE_COOKIES = os.environ.get("SWITCHBACK_SECURE_COOKIES") == "1"
+LEGACY_ROADS = DATA_DIR / "custom_roads.json"                           # pre-accounts hand-added roads, imported once into the first admin
+STORE = Store(DATA_DIR / "switchback.db")
+BY_ID = {c["id"]: c for c in DATA["candidates"]}
 
 
-def load_custom():
+def import_legacy_roads(uid):
     try:
-        return json.load(open(CUSTOM_FILE))
+        old = json.load(open(LEGACY_ROADS))
     except Exception:
-        return []
+        return 0
+    n = 0
+    for c in old:
+        for k in ("id", "manual", "shared", "mine", "added_by", "added_on", "where"):
+            c.pop(k, None)
+        STORE.add_road(uid, c.get("name", "My road"), c, True); n += 1
+    LEGACY_ROADS.rename(LEGACY_ROADS.with_suffix(".imported"))
+    return n
 
 
-CUSTOM = load_custom()
-BY_ID = {}
+def owner_user():
+    """Single-user mode: one admin account, created on demand, never needs a password."""
+    u = STORE.one("SELECT * FROM users ORDER BY id LIMIT 1")
+    if not u:
+        import secrets
+        uid = STORE.create_user("owner", secrets.token_urlsafe(24), "admin"); import_legacy_roads(uid); u = STORE.user(uid)
+    return u
 
 
-def merged():
-    return {**DATA, "candidates": DATA["candidates"] + CUSTOM}
-
-
-def refresh():
-    BY_ID.clear(); BY_ID.update({c["id"]: c for c in merged()["candidates"]})
-
-
-refresh()
+def cand_for(cid, user):
+    """A base candidate, or a hand-added road the user is allowed to see."""
+    if cid < ROAD_ID_BASE:
+        return BY_ID[cid]
+    for c in STORE.roads_for(user["id"]):
+        if c["id"] == cid:
+            return c
+    raise ApiError(404, "That road is not available.")
 ROADS = json.load(open(HERE / "data" / "roads.json")) if (HERE / "data" / "roads.json").exists() else {}
 _GRAPHS = {}
 
@@ -105,7 +124,7 @@ def gh_route(a, b, profile="car"):
     return p["points"]["coordinates"], p["distance"], p["time"] / 1000
 
 
-def custom_candidate(name, line, cid):
+def custom_candidate(name, line):
     """Measure a hand-drawn stretch with the same geometry code as the scan; speed/interruptions/traffic stay unknown."""
     from switchback import rank
     km = sum(hav_m(a, b) for a, b in zip(line, line[1:])) / 1000
@@ -125,7 +144,7 @@ def custom_candidate(name, line, cid):
     except Exception as e:
         print("custom road metrics unavailable:", e)
     comps = rank.components(m); comps["flow"] = rank.UNKNOWN          # interruptions were not measured
-    return {"id": cid, "family": name, "name": name, "ref": "", "highway": "manual", "state": "", "where": "added by you", "surface": "unknown",
+    return {"family": name, "name": name, "ref": "", "highway": "manual", "state": "", "where": "", "surface": "unknown",
             "note": "", "manual": True, "metrics": m, "components": {k: round(v, 3) for k, v in comps.items()},
             "score": round(rank.score(comps, DATA["weights"]), 3), "line": [[round(a, 5), round(b, 5)] for a, b in line],
             "ext_end": None, "ext_start": None, "events": {"hard": []}}
@@ -141,7 +160,7 @@ def trace(points):
     return line, km
 
 
-def build(req):
+def build(req, user):
     prof = "motorcycle" if req.get("connectors") == "twisty" else "car"
     start, loop = req["start"], bool(req.get("loop", True))
     end = req.get("end") or (start if loop else None)
@@ -156,7 +175,7 @@ def build(req):
 
     cur, prev_c = start, None
     for n, s in enumerate(req["segments"]):
-        c = BY_ID[s["id"]]
+        c = cand_for(s["id"], user)
         line = c["line"][::-1] if s.get("reverse") else c["line"]
         mps = (c["metrics"].get("speed_median_mph") or 35) * 0.44704 * 0.85   # tagged limit (35 mph if untagged) x 0.85
         joined = None
@@ -202,53 +221,183 @@ def gpx(route, name):
     return "\n".join(o)
 
 
+def ok_json(h, out, code=200, cookie=None):
+    b = json.dumps(out, separators=(",", ":")).encode()
+    h.send_response(code); h.send_header("Content-Type", "application/json"); h.send_header("Content-Length", str(len(b)))
+    if cookie:
+        h.send_header("Set-Cookie", cookie)
+    h.end_headers(); h.wfile.write(b)
+
+
 class H(SimpleHTTPRequestHandler):
     def __init__(self, *a, **k):
         super().__init__(*a, directory=str(HERE), **k)
 
-    def end_headers(self):          # never let the browser reuse a stale candidates.json or page after a rebuild
-        self.send_header("Cache-Control", "no-store")
+    def log_message(self, fmt, *args):      # keep tokens in invite/reset URLs out of the log
+        super().log_message(fmt, *[re.sub(r"(invite|reset)=[^&\s]+", r"\1=***", x) if isinstance(x, str) else x for x in args])
+
+    def end_headers(self):          # never let the browser reuse a stale page or data after a rebuild
+        self.send_header("Cache-Control", "no-store"); self.send_header("X-Content-Type-Options", "nosniff"); self.send_header("X-Frame-Options", "DENY")
         super().end_headers()
 
+    # ---- identity
+    def token(self):
+        for part in (self.headers.get("Cookie") or "").split(";"):
+            k, _, v = part.strip().partition("=")
+            if k == "sb_session":
+                return v
+        return None
+
+    def user(self):
+        return STORE.user_for_session(self.token()) if AUTH_ON else owner_user()
+
+    def need(self, admin=False):
+        u = self.user()
+        if not u:
+            raise ApiError(401, "Please sign in.")
+        if admin and u["role"] != "admin":
+            raise ApiError(403, "Admins only.")
+        return u
+
+    def cookie(self, token, clear=False):
+        secure = SECURE_COOKIES or self.headers.get("X-Forwarded-Proto") == "https"
+        return f"sb_session={'' if clear else token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={0 if clear else 30 * 86400}{'; Secure' if secure else ''}"
+
+    def ip(self):
+        return self.client_address[0]
+
+    # ---- routes
     def do_GET(self):
-        if self.path.startswith("/api/candidates"):
-            b = json.dumps(merged(), separators=(",", ":")).encode()
-            self.send_response(200); self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(b)))
-            self.end_headers(); self.wfile.write(b); return
-        if self.path in ("/", ""):
+        path = self.path.split("?")[0]
+        try:
+            if path == "/api/state":
+                u = self.user()
+                st = STORE.settings()
+                return ok_json(self, {"auth": AUTH_ON, "setup": AUTH_ON and STORE.user_count() == 0, "user": STORE.public_user(u) if u else None,
+                                      "settings": {"server_name": st["server_name"], "share_roads_default": st["share_roads_default"] == "1"}})
+            if path == "/api/candidates":
+                u = self.need()
+                return ok_json(self, {**DATA, "candidates": DATA["candidates"] + STORE.roads_for(u["id"])})
+            if path == "/api/users":
+                self.need(admin=True)
+                return ok_json(self, {"users": [STORE.public_user(x, False) for x in STORE.users()],
+                                      "invites": [dict(r) for r in STORE.pending_invites()], "roads": [dict(r) for r in STORE.all_roads_admin()]})
+            if path.startswith("/api/invite/"):
+                r = STORE.peek_token(path.rsplit("/", 1)[1], "invite")
+                return ok_json(self, {"role": r["role"]})
+            if path.startswith("/api/reset/"):
+                r = STORE.peek_token(path.rsplit("/", 1)[1], "reset")
+                return ok_json(self, {"username": STORE.user(r["user_id"])["username"]})
+        except ApiError as e:
+            return ok_json(self, {"error": e.msg}, e.status)
+        if path in ("/", ""):
             self.send_response(302); self.send_header("Location", "/static/index.html"); self.end_headers(); return
+        if not path.startswith("/static/"):         # only the web UI is public; data and code are not
+            return self.send_error(404)
         return super().do_GET()
 
     def do_POST(self):
         try:
-            req = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
-            if self.path == "/api/route":
-                out = build(req)
-            elif self.path == "/api/custom/preview":
-                line, km = trace(req["points"]); out = {"line": line, "km": round(km, 2)}
-            elif self.path == "/api/custom":
-                line = req.get("line") or trace(req["points"])[0]
-                cid = max([c["id"] for c in CUSTOM] + [100000]) + 1
-                cand = custom_candidate(req["name"].strip()[:60] or "My road", line, cid)
-                CUSTOM.append(cand); CUSTOM_FILE.parent.mkdir(exist_ok=True); json.dump(CUSTOM, open(CUSTOM_FILE, "w")); refresh(); out = {"id": cid}
-            elif self.path == "/api/custom/delete":
-                CUSTOM[:] = [c for c in CUSTOM if c["id"] != req["id"]]; CUSTOM_FILE.parent.mkdir(exist_ok=True); json.dump(CUSTOM, open(CUSTOM_FILE, "w")); refresh(); out = {"ok": True}
-            elif self.path == "/api/gpx":
+            if self.headers.get("X-Requested-With") != "switchback":      # cross-site forms cannot set this header
+                raise ApiError(403, "Bad request origin.")
+            n = int(self.headers.get("Content-Length", 0))
+            if n > 2_000_000:
+                raise ApiError(413, "Request too large.")
+            req = json.loads(self.rfile.read(n) or b"{}")
+            p = self.path
+            if p == "/api/setup":
+                if not AUTH_ON or STORE.user_count():
+                    raise ApiError(409, "Setup is already done.")
+                if not STORE.check_setup_code(req.get("code")):
+                    raise ApiError(403, "Wrong setup code. Look for it in the server log or in the data folder.")
+                uid = STORE.create_user(req.get("username", ""), req.get("password", ""), "admin")
+                import_legacy_roads(uid); STORE.x("DELETE FROM settings WHERE k='setup_code'")
+                return ok_json(self, {"ok": True}, cookie=self.cookie(STORE.new_session(uid)))
+            if p == "/api/login":
+                u = STORE.login(req.get("username", ""), req.get("password", ""), self.ip())
+                return ok_json(self, {"ok": True}, cookie=self.cookie(STORE.new_session(u["id"])))
+            if p == "/api/logout":
+                STORE.drop_session(self.token()); return ok_json(self, {"ok": True}, cookie=self.cookie("", clear=True))
+            if p == "/api/accept":
+                t = STORE.peek_token(req.get("token"), "invite")
+                uid = STORE.create_user(req.get("username", ""), req.get("password", ""), t["role"] or "rider"); STORE.use_token(req["token"])
+                return ok_json(self, {"ok": True}, cookie=self.cookie(STORE.new_session(uid)))
+            if p == "/api/reset":
+                t = STORE.peek_token(req.get("token"), "reset")
+                STORE.set_password(t["user_id"], req.get("password", "")); STORE.use_token(req["token"])
+                return ok_json(self, {"ok": True}, cookie=self.cookie(STORE.new_session(t["user_id"])))
+            u = self.need()
+            if p == "/api/password":
+                full = STORE.user(u["id"])
+                if not AUTH_ON or not check_password(req.get("old", ""), full["pw"]):
+                    raise ApiError(403, "Current password is wrong.")
+                STORE.set_password(u["id"], req.get("new", "")); return ok_json(self, {"ok": True}, cookie=self.cookie(STORE.new_session(u["id"])))
+            if p == "/api/prefs":
+                STORE.set_prefs(u["id"], req.get("prefs") or {}); return ok_json(self, {"ok": True})
+            if p == "/api/route":
+                return ok_json(self, build(req, u))
+            if p == "/api/gpx":
                 b = gpx(req["route"], req.get("name") or "Switchback ride").encode()
                 self.send_response(200); self.send_header("Content-Type", "application/gpx+xml")
                 self.send_header("Content-Disposition", 'attachment; filename="switchback-ride.gpx"')
-                self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
-                return
-            else:
-                return self.send_error(404)
-            code = 200
+                self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b); return
+            if p == "/api/custom/preview":
+                line, km = trace(req["points"]); return ok_json(self, {"line": line, "km": round(km, 2)})
+            if p == "/api/custom":
+                line = req.get("line") or trace(req["points"])[0]
+                name = str(req.get("name", "")).strip()[:60] or "My road"
+                shared = bool(req["shared"]) if "shared" in req else STORE.setting("share_roads_default") == "1"
+                return ok_json(self, {"id": STORE.add_road(u["id"], name, custom_candidate(name, line), shared)})
+            if p == "/api/custom/delete":
+                STORE.delete_road(req["id"], u); return ok_json(self, {"ok": True})
+            if p == "/api/custom/share":
+                STORE.set_road_shared(req["id"], u, bool(req.get("shared"))); return ok_json(self, {"ok": True})
+            # ---- admin
+            self.need(admin=True)
+            if p == "/api/invite":
+                t, exp = STORE.create_token("invite", u["id"], role=req.get("role", "rider"), note=req.get("note", ""))
+                return ok_json(self, {"token": t, "expires": exp})
+            if p == "/api/users/create":
+                uid = STORE.create_user(req.get("username", ""), req.get("password", ""), req.get("role", "rider")); return ok_json(self, {"id": uid})
+            if p == "/api/users/password":
+                STORE.set_password(req["id"], req.get("password", "")); return ok_json(self, {"ok": True})
+            if p == "/api/users/reset-link":
+                t, exp = STORE.create_token("reset", u["id"], user_id=req["id"]); return ok_json(self, {"token": t, "expires": exp})
+            if p == "/api/users/role":
+                STORE.set_role(req["id"], req.get("role")); return ok_json(self, {"ok": True})
+            if p == "/api/users/disable":
+                STORE.set_disabled(req["id"], bool(req.get("disabled"))); return ok_json(self, {"ok": True})
+            if p == "/api/users/delete":
+                STORE.delete_user(req["id"]); return ok_json(self, {"ok": True})
+            if p == "/api/settings":
+                for k, v in (req.get("settings") or {}).items():
+                    STORE.set_setting(k, "1" if v is True else "0" if v is False else v)
+                return ok_json(self, {"ok": True})
+            return self.send_error(404)
+        except ApiError as e:
+            ok_json(self, {"error": e.msg}, e.status)
         except Exception as e:
-            out, code = {"error": str(e)}, 400
-        b = json.dumps(out).encode()
-        self.send_response(code); self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(b)))
-        self.end_headers(); self.wfile.write(b)
+            ok_json(self, {"error": str(e)}, 400)
+
+
+def cli():
+    """python app/server.py reset-password USER  -> sets a random password (for a locked-out admin)."""
+    if len(sys.argv) >= 3 and sys.argv[1] == "reset-password":
+        import secrets
+        u = STORE.one("SELECT * FROM users WHERE username=?", sys.argv[2])
+        if not u:
+            sys.exit(f"No user named {sys.argv[2]}")
+        pw = secrets.token_urlsafe(12); STORE.set_password(u["id"], pw)
+        print(f"New password for {u['username']}: {pw}"); return True
+    return False
 
 
 if __name__ == "__main__":
-    print(f"Switchback on http://0.0.0.0:{PORT}  (GraphHopper: {GH}, {len(BY_ID)} candidates)")
+    if cli():
+        sys.exit(0)
+    if AUTH_ON and STORE.user_count() == 0:
+        print(f"\n  FIRST RUN: open the app and create the admin account.\n  Setup code: {STORE.setup_code()}\n")
+    elif not AUTH_ON:
+        owner_user()
+    print(f"Switchback on http://0.0.0.0:{PORT}  (GraphHopper: {GH}, {len(BY_ID)} candidates, accounts {'on' if AUTH_ON else 'off'})", flush=True)
     ThreadingHTTPServer(("0.0.0.0", PORT), H).serve_forever()
