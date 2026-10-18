@@ -7,6 +7,7 @@ Only the connectors come from the routing engine, so the chosen roads' geometry 
 """
 import json
 import math
+import sys
 import os
 import urllib.request
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -17,7 +18,30 @@ HERE = Path(__file__).resolve().parent
 GH = os.environ.get("SWITCHBACK_GH", "http://localhost:8989")
 PORT = int(os.environ.get("SWITCHBACK_PORT", "8940"))
 DATA = json.load(open(HERE / "data" / "candidates.json"))
-BY_ID = {c["id"]: c for c in DATA["candidates"]}
+sys.path.insert(0, str(HERE.parent / "src"))
+CUSTOM_FILE = HERE.parent / "data_private" / "custom_roads.json"     # roads the user highlighted by hand (private, git-ignored)
+
+
+def load_custom():
+    try:
+        return json.load(open(CUSTOM_FILE))
+    except Exception:
+        return []
+
+
+CUSTOM = load_custom()
+BY_ID = {}
+
+
+def merged():
+    return {**DATA, "candidates": DATA["candidates"] + CUSTOM}
+
+
+def refresh():
+    BY_ID.clear(); BY_ID.update({c["id"]: c for c in merged()["candidates"]})
+
+
+refresh()
 ROADS = json.load(open(HERE / "data" / "roads.json")) if (HERE / "data" / "roads.json").exists() else {}
 _GRAPHS = {}
 
@@ -79,6 +103,42 @@ def gh_route(a, b, profile="car"):
     except Exception as e:
         raise RuntimeError(f"GraphHopper unreachable at {GH}: {e}")
     return p["points"]["coordinates"], p["distance"], p["time"] / 1000
+
+
+def custom_candidate(name, line, cid):
+    """Measure a hand-drawn stretch with the same geometry code as the scan; speed/interruptions/traffic stay unknown."""
+    from switchback import rank
+    km = sum(hav_m(a, b) for a, b in zip(line, line[1:])) / 1000
+    m = {"length_km": round(km, 2), "deg_per_km": 0, "turns_per_km_45": 0, "radius_p50": 0, "frac_straight": 1, "corners_30_per_km": 0,
+         "longest_corner_chain": 0, "hard_per_km": 0, "hard_events": {}, "pub_junctions_per_km": 0, "pub_junctions": 0, "crossings": 0,
+         "longest_clear_m": round(km * 1000), "speed_median_mph": None, "speed_known_share": 0, "speed_mph_range": None, "aadt": None, "aadt_coverage": 0}
+    try:
+        import numpy as np
+        from switchback.discover import corner_chains
+        from switchback.geometry import Params, analyze, features
+        lon = np.array([p[0] for p in line]); lat = np.array([p[1] for p in line]); P = Params()
+        ser, corners, straights, _w, _r = analyze(lon, lat, P, window_sizes=(1000,), stride=500)
+        v = ser.s[ser.valid]; f = features(ser, corners, straights, float(v.min()), float(v.max()), P)
+        num = lambda x, d=0: d if x != x else x
+        m.update(deg_per_km=round(num(f["deg_per_km"])), turns_per_km_45=round(num(f["turns_per_km_45"]), 1), radius_p50=round(num(f["radius_p50"])),
+                 frac_straight=round(num(f["frac_straight"], 1), 2), **corner_chains(lon, lat))
+    except Exception as e:
+        print("custom road metrics unavailable:", e)
+    comps = rank.components(m); comps["flow"] = rank.UNKNOWN          # interruptions were not measured
+    return {"id": cid, "family": name, "name": name, "ref": "", "highway": "manual", "state": "", "where": "added by you", "surface": "unknown",
+            "note": "", "manual": True, "metrics": m, "components": {k: round(v, 3) for k, v in comps.items()},
+            "score": round(rank.score(comps, DATA["weights"]), 3), "line": [[round(a, 5), round(b, 5)] for a, b in line],
+            "ext_end": None, "ext_start": None, "events": {"hard": []}}
+
+
+def trace(points):
+    """Follow the roads between the clicked points (plain car routing) and return the joined line."""
+    line, km = [], 0.0
+    for a, b in zip(points, points[1:]):
+        co, d, _t = gh_route(a, b, "car")
+        co = [c[:2] for c in co]
+        line += co[1:] if line else co; km += d / 1000
+    return line, km
 
 
 def build(req):
@@ -151,6 +211,10 @@ class H(SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_GET(self):
+        if self.path.startswith("/api/candidates"):
+            b = json.dumps(merged(), separators=(",", ":")).encode()
+            self.send_response(200); self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(b)))
+            self.end_headers(); self.wfile.write(b); return
         if self.path in ("/", ""):
             self.send_response(302); self.send_header("Location", "/static/index.html"); self.end_headers(); return
         return super().do_GET()
@@ -160,6 +224,15 @@ class H(SimpleHTTPRequestHandler):
             req = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
             if self.path == "/api/route":
                 out = build(req)
+            elif self.path == "/api/custom/preview":
+                line, km = trace(req["points"]); out = {"line": line, "km": round(km, 2)}
+            elif self.path == "/api/custom":
+                line = req.get("line") or trace(req["points"])[0]
+                cid = max([c["id"] for c in CUSTOM] + [100000]) + 1
+                cand = custom_candidate(req["name"].strip()[:60] or "My road", line, cid)
+                CUSTOM.append(cand); CUSTOM_FILE.parent.mkdir(exist_ok=True); json.dump(CUSTOM, open(CUSTOM_FILE, "w")); refresh(); out = {"id": cid}
+            elif self.path == "/api/custom/delete":
+                CUSTOM[:] = [c for c in CUSTOM if c["id"] != req["id"]]; CUSTOM_FILE.parent.mkdir(exist_ok=True); json.dump(CUSTOM, open(CUSTOM_FILE, "w")); refresh(); out = {"ok": True}
             elif self.path == "/api/gpx":
                 b = gpx(req["route"], req.get("name") or "Switchback ride").encode()
                 self.send_response(200); self.send_header("Content-Type", "application/gpx+xml")

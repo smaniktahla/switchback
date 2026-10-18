@@ -65,7 +65,12 @@
       <div class="row"><input id="q" type="text" placeholder="Start from… (town or address)"><button id="go">Find</button></div>
       <div class="row"><button id="find" class="primary" style="flex:2">Find a road for me</button><button id="here" style="flex:1" title="Search around the middle of the map as you have panned it">Search this area</button></div>
       <div class="row mute" id="sugg" style="display:none"></div>
-      <div class="row"><button id="savehome" title="Remember the current start point as Home on this browser">Save as home</button><button id="gohome" title="Jump to your saved home" disabled>Go home</button></div>
+      <div class="row"><button id="savehome" title="Remember the current start point as Home on this browser">Save as home</button><button id="gohome" title="Jump to your saved home" disabled>Go home</button><button id="adddraw" title="Highlight a stretch of road yourself and save it to your own list" style="margin-left:auto">＋ Add a road</button></div>
+      <div id="draw" style="display:none;margin-top:8px;padding:8px;border:1px dashed var(--accent);border-radius:8px;background:#fff7f0">
+        <div class="mute" id="drawinfo">Click along the road you want to add: the start, any points in between to keep it on the right road, then the end.</div>
+        <div class="row"><input id="drawname" type="text" placeholder="Name (e.g. Old Rag Road)"></div>
+        <div class="row"><button id="drawundo">Undo point</button><button id="drawsave" class="primary" disabled>Save road</button><button id="drawcancel">Cancel</button></div>
+      </div>
       <div class="row mute"><span id="startlbl">Click the map to set your start.</span></div>
       <div class="row"><label class="mute" style="white-space:nowrap">Min length <b id="minv"></b></label><input id="minlen" type="range" min="0" max="12" step="0.5" value="3" style="flex:1"></div>
       <div class="row"><label class="mute" style="white-space:nowrap">Within <b id="radv"></b></label><input id="rad" type="range" min="10" max="250" step="5" value="80" style="flex:1"></div>
@@ -129,11 +134,11 @@ function fmt(c) {
   return {
     chips: [D(m.length_km), c.state, `${PER(m.deg_per_km)}°/${UL()}`, `chain ${m.longest_corner_chain}`,
       m.speed_median_mph ? SP(m.speed_median_mph) : "speed ?", m.aadt ? `${Math.round(m.aadt).toLocaleString()}/day` : "traffic ?",
-      m.hard_per_km === 0 ? "no stops" : `${m.hard_events ? Object.values(he).reduce((a,b)=>a+b,0) : 0} stops/signals`],
+      c.manual ? "★ yours" : m.hard_per_km === 0 ? "no stops" : `${m.hard_events ? Object.values(he).reduce((a,b)=>a+b,0) : 0} stops/signals`],
     rows: [["Where", c.where], ["Road", `${c.name} ${c.ref ? "("+c.ref+")" : ""} — ${c.highway}`], ["Surface", c.surface],
       ["Heading change", `${PER(m.deg_per_km)} °/${UL()}; ${PER(m.turns_per_km_45)} turns ≥45° per ${UL()}; median radius ${SH(m.radius_p50)}`],
       ["Corner chains", `longest ${m.longest_corner_chain} corners ≤${SH(100)} apart; ${PER(m.corners_30_per_km)} corners ≥30° per ${UL()}`],
-      ["Interruptions", `${hard}; ${m.pub_junctions} public junctions; longest clear run ${D(m.longest_clear_m/1000)}`],
+      ["Interruptions", c.manual ? "not measured (added by you)" : `${hard}; ${m.pub_junctions} public junctions; longest clear run ${D(m.longest_clear_m/1000)}`],
       ["Speed limit", m.speed_median_mph ? `median ${SP(m.speed_median_mph)} (${m.speed_mph_range ? m.speed_mph_range.map(SP).join(" – ") : ""}), tagged on ${Math.round(m.speed_known_share*100)}% of the road` : "not tagged in OSM"],
       ["Traffic", m.aadt ? `~${Math.round(m.aadt).toLocaleString()} vehicles/day (state count, covers ${Math.round(m.aadt_coverage*100)}%)` : "no data (informational only)"]]
   };
@@ -160,8 +165,10 @@ function renderList() {
       <div class="mute">${c.where}${center ? ` · ${D(d, 0)} from search centre` : ""}</div>
       <div class="chips">${f.chips.map(x => `<span class="chip">${x}</span>`).join("")}${c.note ? `<span class="chip warn">${c.note}</span>` : ""}${c.surface.startsWith("untagged") ? `<span class="chip warn">surface untagged</span>` : ""}</div>
       <div class="bars">${COMP.map(k => `<div class="bar" title="${COMP_LABEL[k]} ${c.components[k].toFixed(2)}"><i style="width:${c.components[k]*100}%"></i></div>`).join("")}</div>
-      ${c.id === focusId ? `<table class="d">${f.rows.map(([a,b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join("")}</table>` : ""}`;
-    el.onclick = e => { if (e.target.dataset.add) { addToRide(c.id); e.stopPropagation(); } else focus(c.id, true); };
+      ${c.id === focusId ? `<table class="d">${f.rows.map(([a,b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join("")}</table>${c.manual ? `<div class="row"><button data-del="${c.id}">Remove from my roads</button></div>` : ""}` : ""}`;
+    el.onclick = async e => {
+      if (e.target.dataset.del) { e.stopPropagation(); if (confirm(`Remove "${c.name}" from your roads?`)) { await fetch("/api/custom/delete", {method:"POST", body: JSON.stringify({id: c.id})}); focusId = null; await loadData(false); } return; }
+      if (e.target.dataset.add) { addToRide(c.id); e.stopPropagation(); } else focus(c.id, true); };
     $("list").appendChild(el);
   }
   // every candidate stays on the map (the whole scan is loaded once at startup); the radius only decides which ones
@@ -173,7 +180,7 @@ function drawLines(visible, scores, inRange) {
   for (const c of DATA.candidates) {
     let pl = lines[c.id];
     if (!cases[c.id]) cases[c.id] = L.polyline(c.line.map(p => [p[1], p[0]]), {weight:9, opacity:.9, color:"#fff", interactive:false});
-    if (!pl) { pl = lines[c.id] = L.polyline(c.line.map(p => [p[1], p[0]]), {weight:5, opacity:.9, bubblingMouseEvents:false}); pl.on("click", () => { focus(c.id, false); }); pl.bindTooltip(`${c.name} ${c.ref}`, {sticky:true}); }
+    if (!pl) { pl = lines[c.id] = L.polyline(c.line.map(p => [p[1], p[0]]), {weight:5, opacity:.9, bubblingMouseEvents:false}); pl.on("click", e => { if (drawMode) drawAdd(e.latlng); else focus(c.id, false); }); pl.bindTooltip(`${c.name} ${c.ref}`, {sticky:true}); }
     const cs = cases[c.id];
     if (visible.has(c.id)) {
       const f = c.id === focusId, n = ride.findIndex(r => r.id === c.id), dim = !inRange.has(c.id) && n < 0 && !f;
@@ -352,8 +359,39 @@ function setFinish(lon, lat) {
   pickFinish = false; $("finishbtn").textContent = finish ? "Clear finish" : "Set finish"; invalidate();
 }
 $("finishbtn").onclick = () => { if (finish) { setFinish(null); $("loop").checked = true; invalidate(); } else { pickFinish = true; $("finishbtn").textContent = "Click the map…"; } };
+// ---- add a road by hand: click along it, the server traces the roads between the points, name it and save
+let drawMode = false, drawPts = [], drawResult = null, drawSeq = 0; const drawLayer = L.layerGroup().addTo(map);
+function drawRedraw() {
+  drawLayer.clearLayers();
+  if (drawResult) L.polyline(drawResult.line.map(p => [p[1], p[0]]), {color:"#0f766e", weight:8, opacity:.9, interactive:false}).addTo(drawLayer);
+  drawPts.forEach((p, i) => L.circleMarker([p[1], p[0]], {radius:6, color:"#0f766e", fillColor: i === 0 ? "#fff" : "#0f766e", fillOpacity:1, weight:3, interactive:false}).addTo(drawLayer));
+  $("drawsave").disabled = !drawResult;
+  $("drawinfo").textContent = drawResult ? `${D(drawResult.km)} highlighted. Add more points to correct the path, or name it and save.` : "Click along the road you want to add: the start, any points in between to keep it on the right road, then the end.";
+}
+async function drawPreview() {
+  const seq = ++drawSeq; drawResult = null;
+  if (drawPts.length >= 2) {
+    try { const r = await fetch("/api/custom/preview", {method:"POST", body: JSON.stringify({points: drawPts})}); const j = await r.json(); if (seq !== drawSeq) return; if (r.ok) drawResult = j; else $("drawinfo").textContent = "Could not follow the road: " + j.error; }
+    catch (e) { if (seq !== drawSeq) return; }
+  }
+  drawRedraw();
+}
+function drawStart() { drawMode = true; drawPts = []; drawResult = null; $("draw").style.display = "block"; map.getContainer().style.cursor = "crosshair"; $("drawname").value = ""; drawRedraw(); }
+function drawEnd() { drawMode = false; drawSeq++; drawPts = []; drawResult = null; drawLayer.clearLayers(); $("draw").style.display = "none"; map.getContainer().style.cursor = ""; }
+const drawAdd = ll => { drawPts.push([ll.lng, ll.lat]); drawRedraw(); drawPreview(); };
+$("adddraw").onclick = () => drawMode ? drawEnd() : drawStart();
+$("drawcancel").onclick = drawEnd;
+$("drawundo").onclick = () => { drawPts.pop(); drawRedraw(); drawPreview(); };
+$("drawsave").onclick = async () => {
+  const name = $("drawname").value.trim(); if (!name) { $("drawinfo").textContent = "Give the road a name first."; $("drawname").focus(); return; }
+  const r = await fetch("/api/custom", {method:"POST", body: JSON.stringify({name, line: drawResult.line})}); const j = await r.json();
+  if (!r.ok) { $("drawinfo").textContent = "Could not save: " + j.error; return; }
+  drawEnd(); await loadData(false); focus(j.id, true);
+};
+document.addEventListener("keydown", e => { if (e.key === "Escape" && drawMode) drawEnd(); });
+
 // a click that lands on a road, the route or any other drawn shape must never move the start
-map.on("click", e => (e.originalEvent.target.closest && e.originalEvent.target.closest(".leaflet-interactive, .leaflet-marker-icon")) ? null : pickFinish ? setFinish(e.latlng.lng, e.latlng.lat) : setStart(e.latlng.lng, e.latlng.lat));
+map.on("click", e => drawMode ? drawAdd(e.latlng) : (e.originalEvent.target.closest && e.originalEvent.target.closest(".leaflet-interactive, .leaflet-marker-icon")) ? null : pickFinish ? setFinish(e.latlng.lng, e.latlng.lat) : setStart(e.latlng.lng, e.latlng.lat));
 const unitBtn = () => { $("units").textContent = units === "mi" ? "mi ⇄ km" : "km ⇄ mi"; };
 $("units").onclick = () => {
   units = units === "mi" ? "km" : "mi"; try { localStorage.setItem("switchback.units", units); } catch {}
@@ -377,11 +415,19 @@ async function search() {
 }
 $("go").onclick = search; $("q").onkeydown = e => { if (e.key === "Enter") search(); };
 
-fetch("../data/candidates.json", {cache: "no-store"}).then(r => r.json()).then(d => {
-  DATA = d; W = {...d.weights}; renderWeights(); renderList(); renderRide();
+// candidates = the scan plus roads you highlighted yourself (served together by /api/candidates)
+async function loadData(first) {
+  const d = await (await fetch("/api/candidates", {cache: "no-store"})).json();
+  for (const id of Object.keys(lines)) { map.removeLayer(lines[id]); if (cases[id]) map.removeLayer(cases[id]); delete lines[id]; delete cases[id]; }
+  DATA = d; if (first) W = {...d.weights};
+  ride = ride.filter(r => DATA.candidates.some(c => c.id === r.id));
+  if (first) renderWeights(); renderList(); renderRide();
+  if (!first) return;
   const home = loadHome(); if (home) { $("gohome").disabled = false; useHome(home); return; }
   const all = L.featureGroup(Object.values(lines)); if (all.getLayers().length) map.fitBounds(all.getBounds());
-});
+}
+loadData(true);
+
 </script>
 </body>
 </html>
