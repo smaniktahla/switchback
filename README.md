@@ -1,3 +1,5 @@
+<p align="center"><img src="app/static/logo.png" alt="Switchback" width="320"></p>
+
 # 🏍️ Switchback
 
 ### Less highway. More corners.

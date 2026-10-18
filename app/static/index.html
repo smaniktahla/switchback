@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Switchback</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#fafaf7">
 <link rel="stylesheet" href="vendor/leaflet.css">
 <style>
   :root { --bg:#fafaf7; --panel:#fff; --ink:#1c1c1a; --mute:#6b6b66; --line:#e3e2dc; --accent:#c2410c; --route:#1d4ed8; }
@@ -53,7 +57,7 @@
 <div id="app">
   <div id="side">
     <header>
-      <h1 style="display:flex;align-items:baseline"><span>Switchback <small>find a road, plan a ride, export GPX</small></span><button id="units" style="margin-left:auto;padding:1px 8px" title="Switch between miles and kilometres"></button></h1>
+      <h1 style="display:flex;align-items:center"><span style="display:flex;align-items:center;gap:8px"><img src="logo-mark.png" alt="" style="height:30px;width:auto"><span>Switchback</span></span><button id="units" style="margin-left:auto;padding:1px 8px;white-space:nowrap" title="Switch between miles and kilometres"></button></h1>
       <div class="row"><input id="q" type="text" placeholder="Start from… (town or address)"><button id="go">Find</button></div>
       <div class="row"><button id="find" class="primary" style="flex:2">Find a road for me</button><button id="here" style="flex:1" title="Search around the middle of the map as you have panned it">Search this area</button></div>
       <div class="row mute" id="sugg" style="display:none"></div>
