@@ -1,0 +1,5 @@
+road,length_km,deg_per_km,turns_per_km_ge45,turns_per_km_ge15,radius_p10_p50_p75_m,pct_length_R_lt_50,pct_straight,straight_median_m,straight_max_m,gain_m,loss_m,mean_abs_grade_pct,max_sustained_grade_250m_pct,maxspeed_tagged_share,lanes_tagged_share
+us211_sperryville_thornton_gap,10.84,222,1.68,3.26,63/173/276,2.4,51,40,1210,451,3,4.2,7.2,1.0,1.0
+us129_dragon_deals_gap_tabcat,18.01,636,5.24,8.06,31/94/191,17.0,20,15,150,204,521,4.0,5.9,1.0,1.0
+us165_cherohala_skyway,66.88,228,1.94,3.08,87/183/294,0.0,41,60,870,1887,1349,4.8,10.0,0.14,0.29
+us211_climb_km6_thornton_gap,4.83,394,3.39,4.66,52/144/227,5.3,25,30,110,297,0,6.2,7.2,1.0,1.0

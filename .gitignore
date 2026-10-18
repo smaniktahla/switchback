@@ -1,0 +1,7 @@
+.venv/
+data/
+reports/out/
+__pycache__/
+*.pyc
+*.pbf
+data_private/

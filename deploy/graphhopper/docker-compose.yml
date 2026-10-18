@@ -1,0 +1,13 @@
+# Run on AI1 (plenty of RAM). Mount: region.osm.pbf, graphhopper-web-11.1.jar, config.yml, graph-cache/ in this dir.
+services:
+  graphhopper:
+    image: eclipse-temurin:21-jre
+    container_name: switchback-gh
+    working_dir: /data
+    command: ["java", "-Xmx6g", "-Ddw.graphhopper.datareader.file=/data/region.osm.pbf",
+              "-jar", "/data/graphhopper-web-11.1.jar", "server", "/data/config.yml"]
+    volumes: ["./:/data"]
+    ports: ["8989:8989"]
+    user: "1000:1000"
+    mem_limit: 8g
+    restart: unless-stopped

@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Switchback</title>
+<link rel="stylesheet" href="vendor/leaflet.css">
+<style>
+  :root { --bg:#fafaf7; --panel:#fff; --ink:#1c1c1a; --mute:#6b6b66; --line:#e3e2dc; --accent:#c2410c; --route:#1d4ed8; }
+  * { box-sizing: border-box; }
+  html, body { height:100%; margin:0; font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; color:var(--ink); background:var(--bg); }
+  #app { display:flex; height:100%; }
+  #side { width:400px; max-width:46vw; display:flex; flex-direction:column; background:var(--panel); border-right:1px solid var(--line); }
+  #map { flex:1; }
+  header { padding:12px 16px 8px; border-bottom:1px solid var(--line); }
+  h1 { margin:0; font-size:18px; letter-spacing:.02em; }
+  h1 small { font-weight:400; color:var(--mute); font-size:12px; margin-left:6px; }
+  .row { display:flex; gap:8px; align-items:center; margin-top:8px; }
+  input[type=text] { flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font:inherit; }
+  button { font:inherit; padding:6px 10px; border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer; }
+  button:hover { border-color:var(--accent); }
+  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  button:disabled { opacity:.5; cursor:default; }
+  .mute { color:var(--mute); font-size:12px; }
+  #scroll { flex:1; overflow:auto; }
+  details { border-bottom:1px solid var(--line); }
+  summary { padding:8px 16px; cursor:pointer; font-weight:600; }
+  .pad { padding:4px 16px 12px; }
+  .w { display:grid; grid-template-columns:96px 1fr 28px; gap:6px; align-items:center; font-size:12px; margin:2px 0; }
+  .card { padding:10px 16px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .card:hover, .card.focus { background:#fdf3ec; }
+  .card .t { display:flex; justify-content:space-between; gap:8px; font-weight:600; }
+  .badge { background:var(--accent); color:#fff; border-radius:10px; padding:0 8px; font-size:12px; line-height:20px; height:20px; white-space:nowrap; }
+  .chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }
+  .chip { background:#f1f0ea; border-radius:4px; padding:0 6px; font-size:11px; color:#444; }
+  .chip.warn { background:#fde8d8; }
+  .bars { display:grid; grid-template-columns:repeat(6,1fr); gap:3px; margin-top:6px; }
+  .bar { height:5px; background:#eee; border-radius:2px; overflow:hidden; } .bar i { display:block; height:100%; background:#7c9a5e; }
+  table.d { width:100%; font-size:12px; border-collapse:collapse; margin-top:6px; }
+  table.d td { padding:1px 0; vertical-align:top; } table.d td:first-child { color:var(--mute); width:46%; }
+  #ride { border-top:2px solid var(--accent); background:#fffaf6; max-height:46%; overflow:auto; padding:8px 16px 12px; }
+  #ride h2 { margin:0 0 4px; font-size:14px; }
+  .item { display:flex; align-items:center; gap:6px; padding:4px 0; border-bottom:1px dashed var(--line); }
+  .item .n { flex:1; font-size:13px; } .item button { padding:1px 6px; font-size:12px; }
+  #msg { margin-top:6px; font-size:12px; } #msg.err { color:#b91c1c; }
+  .leaflet-container { font:inherit; }
+  #totals { position:absolute; z-index:1000; top:10px; left:50%; transform:translateX(-50%); background:rgba(255,255,255,.95); border:1px solid var(--line); border-radius:20px; padding:5px 16px; box-shadow:0 1px 4px rgba(0,0,0,.2); font-weight:600; white-space:nowrap; pointer-events:none; }
+  #totals small { font-weight:400; color:var(--mute); margin-left:8px; }
+  @media (max-width:760px) { #app { flex-direction:column-reverse; } #side { width:100%; max-width:none; height:62%; } #map { height:38%; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="side">
+    <header>
+      <h1>Switchback <small>find a road, plan a ride, export GPX</small></h1>
+      <div class="row"><input id="q" type="text" placeholder="Start from… (town or address)"><button id="go">Find</button></div>
+      <div class="row"><button id="find" class="primary" style="flex:2">Find a road for me</button><button id="here" style="flex:1" title="Search around the middle of the map as you have panned it">Search this area</button></div>
+      <div class="row mute" id="sugg" style="display:none"></div>
+      <div class="row"><button id="savehome" title="Remember the current start point as Home on this browser">Save as home</button><button id="gohome" title="Jump to your saved home" disabled>Go home</button></div>
+      <div class="row mute"><span id="startlbl">Click the map to set your start.</span></div>
+      <div class="row"><label class="mute" style="white-space:nowrap">Min length <b id="minv">3</b> km</label><input id="minlen" type="range" min="0" max="12" step="0.5" value="3" style="flex:1"></div>
+      <div class="row"><label class="mute" style="white-space:nowrap">Within <b id="radv">80</b> km</label><input id="rad" type="range" min="10" max="250" step="5" value="80" style="flex:1"></div>
+    </header>
+    <div id="scroll">
+      <details>
+        <summary>Ranking weights</summary>
+        <div class="pad" id="weights"></div>
+        <div class="pad mute" style="margin-top:-6px">Score = weighted mean of the six 0–1 components shown on each road. Unknown speed/traffic counts as a neutral 0.5. Formulas: <code>src/switchback/rank.py</code>. Defaults: <code>config/mvp.yml</code>.</div>
+      </details>
+      <div id="list"></div>
+    </div>
+    <div id="ride">
+      <h2 style="display:flex;justify-content:space-between;align-items:center"><span>My ride <span class="mute" id="ridesum"></span></span><span><button id="undo" title="Undo the last change to the ride" disabled>↶ Undo</button> <button id="reset" title="Clear the ride and route (keeps your start point)">Reset ride</button></span></h2>
+      <div id="items" class="mute">Add roads from the list or by clicking one on the map.</div>
+      <div class="row">
+        <label><input type="checkbox" id="loop" checked> Return home</label>
+        <button id="finishbtn" title="Click the map to end the ride somewhere other than the start">Set finish</button>
+        <select id="conn" title="How to get between your chosen roads: fastest, or detour onto curvier roads"><option value="direct">Direct</option><option value="twisty">More twisties!</option></select>
+        <button id="nextroad" disabled>Find next road</button>
+        <button id="build" class="primary" disabled>Build route</button>
+        <button id="dl" disabled>Download GPX</button>
+      </div>
+      <div id="msg" class="mute"></div>
+    </div>
+  </div>
+  <div id="map"><div id="totals" style="display:none"></div></div>
+</div>
+<script src="vendor/leaflet.js"></script>
+<script>
+// one colour per ride item, shared by the ride list, the map line and its connector (none of them green or purple)
+const PALETTE = ["#ea580c","#2563eb","#0891b2","#dc2626","#ca8a04","#7c2d12","#111827","#0369a1"];
+const rideColor = i => PALETTE[i % PALETTE.length];
+const COMP = ["twistiness","corner_chain","flow","speed","traffic","length"];
+const COMP_LABEL = {twistiness:"Twistiness",corner_chain:"Corner chains",flow:"Flow (no stops)",speed:"Speed limit",traffic:"Traffic",length:"Length"};
+const $ = id => document.getElementById(id);
+let finish = null, finishMarker = null, pickFinish = false, DATA, W = {}, start = null, center = null, centerLayer = L.layerGroup(), startMarker = null, ride = [], route = null, focusId = null;
+const lines = {}, cases = {}, layerRoute = L.layerGroup(), layerEvents = L.layerGroup();
+const map = L.map("map").setView([38.75, -78.2], 9);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:18, attribution:"© OpenStreetMap contributors"}).addTo(map);
+layerRoute.addTo(map); centerLayer.addTo(map); layerEvents.addTo(map);
+
+const hav = (a,b) => { const r=Math.PI/180, p1=a[1]*r, p2=b[1]*r, h=Math.sin((p2-p1)/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin((b[0]-a[0])*r/2)**2; return 12742*Math.asin(Math.sqrt(h)); };
+const score = c => { let s=0, t=0; for (const k of COMP) { s += W[k]*c.components[k]; t += W[k]; } return t ? s/t : 0; };
+// purple (lower score) to hot magenta (higher): stands out on the green/grey basemap; route is orange, connectors blue
+const colorFor = s => `hsl(${Math.round(255 + 80*Math.max(0,Math.min(1,(s-0.4)/0.5)))},85%,48%)`;
+const longEnough = c => c.metrics.length_km >= +$("minlen").value;
+// distances (radius filter, suggestions) are measured from the search centre: the start point, or wherever "Search this area" was last pressed
+const distToStart = c => center ? Math.min(...c.line.map(p => hav(center, p))) : 0;
+
+function fmt(c) {
+  const m = c.metrics, he = m.hard_events, hard = Object.entries(he).filter(([,v])=>v).map(([k,v])=>`${v} ${k.replace("_"," ")}`).join(", ") || "none";
+  return {
+    chips: [`${m.length_km.toFixed(1)} km`, c.state, `${m.deg_per_km}°/km`, `chain ${m.longest_corner_chain}`,
+      m.speed_median_mph ? `${Math.round(m.speed_median_mph)} mph` : "speed ?", m.aadt ? `${Math.round(m.aadt).toLocaleString()}/day` : "traffic ?",
+      m.hard_per_km === 0 ? "no stops" : `${m.hard_events ? Object.values(he).reduce((a,b)=>a+b,0) : 0} stops/signals`],
+    rows: [["Where", c.where], ["Road", `${c.name} ${c.ref ? "("+c.ref+")" : ""} — ${c.highway}`], ["Surface", c.surface],
+      ["Heading change", `${m.deg_per_km} °/km; ${m.turns_per_km_45} turns ≥45° per km; median radius ${m.radius_p50} m`],
+      ["Corner chains", `longest ${m.longest_corner_chain} corners ≤100 m apart; ${m.corners_30_per_km} corners ≥30° per km`],
+      ["Interruptions", `${hard}; ${m.pub_junctions} public junctions; longest clear run ${(m.longest_clear_m/1000).toFixed(1)} km`],
+      ["Speed limit", m.speed_median_mph ? `median ${Math.round(m.speed_median_mph)} mph (${m.speed_mph_range ? m.speed_mph_range.map(Math.round).join("–") : ""}), tagged on ${Math.round(m.speed_known_share*100)}% of the road` : "not tagged in OSM"],
+      ["Traffic", m.aadt ? `~${Math.round(m.aadt).toLocaleString()} vehicles/day (state count, covers ${Math.round(m.aadt_coverage*100)}%)` : "no data (informational only)"]]
+  };
+}
+
+function renderWeights() {
+  $("weights").innerHTML = COMP.map(k => `<div class="w"><span>${COMP_LABEL[k]}</span><input type="range" min="0" max="5" step="0.5" value="${W[k]}" data-k="${k}"><b>${W[k]}</b></div>`).join("");
+  $("weights").querySelectorAll("input").forEach(i => i.oninput = () => { W[i.dataset.k] = +i.value; i.nextElementSibling.textContent = i.value; renderList(); });
+}
+
+function renderList() {
+  const r = +$("rad").value; $("radv").textContent = r; $("minv").textContent = $("minlen").value;
+  const rows = DATA.candidates.map(c => ({c, s: score(c), d: distToStart(c)})).filter(x => longEnough(x.c) && (!center || x.d <= r)).sort((a,b) => b.s - a.s);
+  if (focusId !== null) {   // the focused road (suggestion or map click) is pinned to the top of the list
+    const i = rows.findIndex(x => x.c.id === focusId), fc = DATA.candidates.find(x => x.id === focusId);
+    rows.unshift(i >= 0 ? rows.splice(i, 1)[0] : {c: fc, s: score(fc), d: distToStart(fc)});
+  }
+  $("list").innerHTML = rows.length ? "" : `<div class="pad mute">No candidates in range. Roads were scanned within ~110 mi of Washington DC (VA, MD, WV).</div>`;
+  for (const {c, s, d} of rows) {
+    const f = fmt(c), el = document.createElement("div");
+    el.className = "card" + (c.id === focusId ? " focus" : ""); const ri = ride.findIndex(x => x.id === c.id); if (ri >= 0) el.style.boxShadow = `inset 6px 0 0 ${rideColor(ri)}`; if (c.id === focusId) el.style.borderLeft = "5px solid var(--accent)"; el.dataset.id = c.id;
+    const inRide = ride.some(x => x.id === c.id);
+    el.innerHTML = `<div class="t"><span>${c.name}${c.ref ? ` <span class="mute">${c.ref}</span>` : ""}</span><span class="badge" style="background:${colorFor(s)}">${Math.round(s*100)}</span></div>
+      <div class="mute">${c.where}${center ? ` · ${Math.round(d)} km from search centre` : ""}</div>
+      <div class="chips">${f.chips.map(x => `<span class="chip">${x}</span>`).join("")}${c.note ? `<span class="chip warn">${c.note}</span>` : ""}${c.surface.startsWith("untagged") ? `<span class="chip warn">surface untagged</span>` : ""}</div>
+      <div class="bars">${COMP.map(k => `<div class="bar" title="${COMP_LABEL[k]} ${c.components[k].toFixed(2)}"><i style="width:${c.components[k]*100}%"></i></div>`).join("")}</div>
+      ${c.id === focusId ? `<table class="d">${f.rows.map(([a,b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join("")}</table>` : ""}
+      <div class="row"><button data-add="${c.id}" ${inRide ? "disabled" : ""}>${inRide ? "In ride" : "Add to ride"}</button></div>`;
+    el.onclick = e => { if (e.target.dataset.add) { addToRide(c.id); e.stopPropagation(); } else focus(c.id, true); };
+    $("list").appendChild(el);
+  }
+  // every candidate stays on the map (the whole scan is loaded once at startup); the radius only decides which ones
+  // are listed and fully opaque, the rest are dimmed, never removed
+  drawLines(new Set(DATA.candidates.filter(longEnough).map(c => c.id)), Object.fromEntries(DATA.candidates.map(c => [c.id, score(c)])), new Set(rows.map(x => x.c.id)));
+}
+
+function drawLines(visible, scores, inRange) {
+  for (const c of DATA.candidates) {
+    let pl = lines[c.id];
+    if (!cases[c.id]) cases[c.id] = L.polyline(c.line.map(p => [p[1], p[0]]), {weight:9, opacity:.9, color:"#fff", interactive:false});
+    if (!pl) { pl = lines[c.id] = L.polyline(c.line.map(p => [p[1], p[0]]), {weight:5, opacity:.9, bubblingMouseEvents:false}); pl.on("click", () => { focus(c.id, false); }); pl.bindTooltip(`${c.name} ${c.ref}`, {sticky:true}); }
+    const cs = cases[c.id];
+    if (visible.has(c.id)) {
+      const f = c.id === focusId, n = ride.findIndex(r => r.id === c.id), dim = !inRange.has(c.id) && n < 0 && !f;
+      cs.setStyle({weight: f ? 13 : n >= 0 ? 12 : 9, color: f ? "#facc15" : "#fff", opacity: dim ? .3 : .9});
+      pl.setStyle(n >= 0 ? {color: rideColor(n), weight:8, opacity:1} : {color: colorFor(scores[c.id]), weight: f ? 8 : dim ? 4 : 5, opacity: dim ? .4 : .95});
+      pl.unbindTooltip(); pl.bindTooltip(`${n >= 0 ? (n + 1) + ". " : ""}${c.name} ${c.ref}`, {sticky:true});
+      if (!map.hasLayer(cs)) cs.addTo(map); if (!map.hasLayer(pl)) pl.addTo(map);
+      cs.bringToFront(); pl.bringToFront();
+    } else { if (map.hasLayer(pl)) map.removeLayer(pl); if (map.hasLayer(cs)) map.removeLayer(cs); }
+    if (c.id === focusId && visible.has(c.id)) { cs.bringToFront(); pl.bringToFront(); }
+  }
+}
+
+function focus(id, fit) {
+  focusId = id; layerEvents.clearLayers();
+  const c = DATA.candidates.find(x => x.id === id);
+  for (const p of c.events.hard) L.circleMarker([p[1], p[0]], {radius:6, color:"#b91c1c", fillColor:"#fecaca", fillOpacity:1, weight:2}).bindTooltip("signal / stop / yield").addTo(layerEvents);
+  if (fit) map.fitBounds(lines[id].getBounds(), {padding:[40,40], maxZoom:14});
+  renderList();
+  $("scroll").scrollTop = 0;
+}
+
+const hist = [];   // snapshots of the ride before each change, for Undo
+const snap = () => { hist.push(JSON.stringify(ride)); if (hist.length > 50) hist.shift(); $("undo").disabled = false; };
+function undo() { if (!hist.length) return; ride = JSON.parse(hist.pop()); $("undo").disabled = !hist.length; invalidate(); renderRide(); renderList(); }
+const exitExt = (id, reverse) => { const c = DATA.candidates.find(x => x.id === id); return reverse ? c.ext_start : c.ext_end; };
+function addToRide(id, reverse = false) { snap(); if (!ride.some(x => x.id === id)) ride.push({id, reverse, ext: !!(exitExt(id, reverse) && exitExt(id, reverse).loop)}); invalidate(); renderRide(); renderList(); }
+// Any change (ride, start, loop, connector mode) re-plans the route automatically; the old route stays on the map until the new one arrives.
+let buildSeq = 0, rebuildTimer = null;
+const hm = m => `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min`;
+function showTotals(j) {
+  const t = $("totals");
+  if (!j) { t.style.display = "none"; return; }
+  t.style.display = "block";
+  t.innerHTML = `${Math.round(j.km)} km · ~${hm(j.minutes)}<small>${finish ? "start → finish" : "home → home"} · ${Math.round(j.segment_km)} km chosen roads</small>`;
+  t.title = "Connector times from the routing engine; chosen roads at the tagged speed limit (35 mph if untagged) x 0.85. No stops, fuel or traffic.";
+}
+function invalidate() {
+  clearTimeout(rebuildTimer);
+  if (ride.length && start) { rebuildTimer = setTimeout(() => buildRoute(false), 250); return; }
+  buildSeq++; route = null; showTotals(null); layerRoute.clearLayers(); $("dl").disabled = true; $("msg").textContent = ""; $("msg").className = "mute";
+}
+
+function renderRide() {
+  $("items").innerHTML = ride.length ? "" : "Add roads from the list or by clicking one on the map.";
+  ride.forEach((r, i) => {
+    const c = DATA.candidates.find(x => x.id === r.id), el = document.createElement("div"); el.className = "item";
+    const xe = exitExt(r.id, r.reverse);
+    el.style.borderLeft = `6px solid ${rideColor(i)}`; el.style.paddingLeft = "6px";
+    el.innerHTML = `<span class="n">${i+1}. ${c.name} ${c.ref} <span class="mute">${c.metrics.length_km.toFixed(1)} km ${r.reverse ? "↩ reversed" : ""}${r.ext && xe ? ` + ${xe.km} km` : ""}</span></span>
+      ${xe ? `<button data-a="ext" title="${xe.loop ? "This road loops back: ride the loop to its end" : "Keep riding this road past the end"}" style="${r.ext ? `background:${rideColor(i)};color:#fff` : ""}">${xe.loop ? "⟳ loop" : "→ on"} +${xe.km}</button>` : ""}
+      <button data-a="up">↑</button><button data-a="down">↓</button><button data-a="rev">⇄</button><button data-a="rm">✕</button>`;
+    el.querySelectorAll("button").forEach(b => b.onclick = () => {
+      const a = b.dataset.a; snap();
+      if (a === "up" && i > 0) [ride[i-1], ride[i]] = [ride[i], ride[i-1]];
+      if (a === "down" && i < ride.length-1) [ride[i+1], ride[i]] = [ride[i], ride[i+1]];
+      if (a === "rev") { r.reverse = !r.reverse; const e2 = exitExt(r.id, r.reverse); r.ext = !!(e2 && e2.loop); }
+      if (a === "ext") r.ext = !r.ext;
+      if (a === "rm") ride.splice(i, 1);
+      invalidate(); renderRide(); renderList();
+    });
+    el.querySelector(".n").onclick = () => focus(r.id, true);
+    $("items").appendChild(el);
+  });
+  const km = ride.reduce((s, r) => s + DATA.candidates.find(x => x.id === r.id).metrics.length_km + (r.ext && exitExt(r.id, r.reverse) ? exitExt(r.id, r.reverse).km : 0), 0);
+  $("ridesum").textContent = ride.length ? `${ride.length} road${ride.length > 1 ? "s" : ""}, ${km.toFixed(1)} km of chosen road` : "";
+  $("build").disabled = !(ride.length && start); $("nextroad").disabled = !ride.length;
+  if (ride.length && !start) $("msg").textContent = "Set a start point (search or click the map).";
+}
+
+async function buildRoute(fit = true) {
+  const seq = ++buildSeq, hadRoute = !!route;
+  $("build").disabled = true; $("msg").className = "mute"; $("msg").textContent = "Routing connectors…";
+  try {
+    const r = await fetch("/api/route", {method:"POST", body: JSON.stringify({start, end: finish, loop: $("loop").checked && !finish, connectors: $("conn").value, segments: ride})});
+    const j = await r.json(); if (!r.ok) throw new Error(j.error);
+    if (seq !== buildSeq) return;   // a newer change superseded this request
+    route = j; layerRoute.clearLayers();
+    for (const p of j.parts) {
+      const ll = j.points.slice(p.i0, p.i1 + 1).map(q => [q[1], q[0]]);
+      const col = p.idx >= 0 ? rideColor(p.idx) : "#64748b";
+      if (p.kind === "segment") L.polyline(ll, {color:"#fff", weight:12, opacity:.95, interactive:false}).addTo(layerRoute);
+      L.polyline(ll, p.kind === "segment" ? {color: col, weight:7, opacity:1, bubblingMouseEvents:false} : {color: col, weight:4, opacity:.85, dashArray:"8 6", bubblingMouseEvents:false}).bindTooltip(`${p.label}: ${p.km} km`).addTo(layerRoute);
+    }
+    if (fit || !hadRoute) map.fitBounds(L.polyline(j.points.map(q => [q[1], q[0]])).getBounds(), {padding:[40,40]});
+    $("msg").textContent = `${j.km} km total: ${j.segment_km} km on your chosen roads + ${j.connector_km} km of connectors (dashed, coloured by the road they lead to; grey = way home).`;
+    $("dl").disabled = false; showTotals(j);
+  } catch (e) { if (seq !== buildSeq) return; route = null; showTotals(null); layerRoute.clearLayers(); $("dl").disabled = true; $("msg").className = "err"; $("msg").textContent = "Route failed: " + e.message; }
+  $("build").disabled = !(ride.length && start);
+}
+
+async function download() {
+  const r = await fetch("/api/gpx", {method:"POST", body: JSON.stringify({route, name: "Switchback: " + ride.map(x => DATA.candidates.find(c => c.id === x.id).name).join(" + ")})});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(await r.blob()); a.download = "switchback-ride.gpx"; a.click();
+}
+
+function setStart(lon, lat, label) {
+  if (!label) $("q").value = "";   // a dropped pin has no address: do not leave an old address in the box
+  start = [lon, lat]; if (startMarker) map.removeLayer(startMarker);
+  startMarker = L.marker([lat, lon], {draggable:true}).addTo(map).bindTooltip("Start / finish");
+  startMarker.on("dragend", () => { const p = startMarker.getLatLng(); setStart(p.lng, p.lat); });
+  startLabel = label || ""; $("startlbl").textContent = "Start: " + (label || `dropped pin (${lat.toFixed(4)}, ${lon.toFixed(4)})`);
+  suggestIdx = 0; $("sugg").style.display = "none"; setCenter(lon, lat);
+  invalidate(); renderList(); renderRide();
+}
+
+function setCenter(lon, lat) {
+  center = [lon, lat]; centerLayer.clearLayers();
+  L.circle([lat, lon], {radius: +$("rad").value * 1000, color:"#2563eb", weight:1.5, dashArray:"6 6", fill:false, interactive:false}).addTo(centerLayer);
+  L.circleMarker([lat, lon], {radius:5, color:"#2563eb", fillColor:"#fff", fillOpacity:1, weight:2, interactive:false}).addTo(centerLayer);
+}
+$("here").onclick = () => { const c = map.getCenter(); setCenter(c.lng, c.lat); suggestIdx = 0; $("startlbl").textContent = $("startlbl").textContent.replace(/ \(searching.*$/, "") + " (searching around map centre)"; suggest(false); };
+
+// "Find a road for me": best nearby road, trading score against distance (0.4 score points per 100 km).
+let suggestIdx = 0, lastQ = "";
+async function findForMe() {
+  const q = $("q").value.trim();
+  if (q && q !== lastQ) { lastQ = q; await search(); }
+  else if (!start) {
+    try {
+      const pos = await new Promise((ok, no) => navigator.geolocation ? navigator.geolocation.getCurrentPosition(ok, no, {timeout:8000}) : no());
+      setStart(pos.coords.longitude, pos.coords.latitude, "my location");
+    } catch { $("startlbl").textContent = "Type a town in 'Start from' (or click the map), then press Find a road for me."; return; }
+  }
+  if (!center) return;
+  suggest(false);
+}
+
+// Suggest the best road near `anchor` (start point, or the end of the last road in the ride), skipping roads already in the ride.
+// From a road's end we enter the candidate at whichever of its two ends is closer, and flag it reversed if that is its far end.
+function suggest(fromEnd) {
+  const anchor = fromEnd ? lastEnd() : center, used = new Set(ride.map(r => r.id));
+  const ranked = DATA.candidates.filter(c => !used.has(c.id) && longEnough(c)).map(c => {
+    const a = hav(anchor, c.line[0]), z = hav(anchor, c.line[c.line.length - 1]);
+    const d = fromEnd ? Math.min(a, z) : distToStart(c);
+    return {c, d, rev: fromEnd && z < a, v: score(c) - 0.004 * d};
+  }).sort((x, y) => y.v - x.v);
+  if (!ranked.length) return;
+  const {c, d, rev} = ranked[suggestIdx % ranked.length];
+  if (!fromEnd && d > +$("rad").value) { $("rad").value = Math.min(250, Math.ceil(d / 5) * 5 + 5); }
+  focus(c.id, false);
+  map.fitBounds(L.latLngBounds([[anchor[1], anchor[0]], ...c.line.map(p => [p[1], p[0]])]), {padding:[40,40], maxZoom:14});
+  const el = $("sugg"); el.style.display = "flex"; el.style.flexWrap = "wrap";
+  el.innerHTML = `<span><b>${c.name}${c.ref ? " " + c.ref : ""}</b>: ${Math.round(d)} km ${fromEnd ? "from the end of your last road" : "away"}, ${c.metrics.length_km.toFixed(1)} km, score ${Math.round(score(c) * 100)}</span> <button id="sa">Add to ride</button> <button id="sn">Next</button>`;
+  $("sa").onclick = () => { addToRide(c.id, rev); $("sugg").style.display = "none"; };
+  $("sn").onclick = () => { suggestIdx++; suggest(fromEnd); };
+}
+const lastEnd = () => { const r = ride[ride.length - 1], l = DATA.candidates.find(x => x.id === r.id).line, e = r.ext && exitExt(r.id, r.reverse); return e ? e.line[e.line.length - 1] : r.reverse ? l[0] : l[l.length - 1]; };
+$("nextroad").onclick = () => { suggestIdx = 0; suggest(true); };
+$("find").onclick = () => { suggestIdx = 0; findForMe(); };
+
+// Home is kept in this browser's localStorage (private to the device; nothing is sent to the server)
+const HOME_KEY = "switchback.home";
+let homeMarker = null;
+function showHome() {
+  const h = loadHome(); if (homeMarker) { map.removeLayer(homeMarker); homeMarker = null; }
+  if (h) homeMarker = L.marker([h.lat, h.lon], {icon: L.divIcon({html:"🏠", className:"", iconSize:[24,24], iconAnchor:[12,12]}), interactive:true, zIndexOffset:-100}).addTo(map).bindTooltip("Home: " + h.label);
+}
+const loadHome = () => { try { return JSON.parse(localStorage.getItem(HOME_KEY)); } catch { return null; } };
+let startLabel = "";
+function useHome(h) { showHome(); $("q").value = h.q || ""; setStart(h.lon, h.lat, h.label || "Home"); map.setView([h.lat, h.lon], 9); }
+$("savehome").onclick = () => {
+  if (!start) { $("startlbl").textContent = "Set a start point first, then save it as home."; return; }
+  const label = startLabel || `dropped pin (${start[1].toFixed(4)}, ${start[0].toFixed(4)})`;
+  try { localStorage.setItem(HOME_KEY, JSON.stringify({lon: start[0], lat: start[1], label, q: $("q").value.trim()})); } catch {}
+  $("gohome").disabled = false; showHome(); $("startlbl").textContent = "Home saved: " + label;
+};
+$("gohome").onclick = () => { const h = loadHome(); if (h) useHome(h); };
+
+function setFinish(lon, lat) {
+  finish = lon === null ? null : [lon, lat]; if (finishMarker) { map.removeLayer(finishMarker); finishMarker = null; }
+  if (finish) { finishMarker = L.marker([lat, lon], {icon: L.divIcon({html:"🏁", className:"", iconSize:[24,24], iconAnchor:[4,22]}), draggable:true}).addTo(map).bindTooltip("Finish");
+    finishMarker.on("dragend", () => { const p = finishMarker.getLatLng(); setFinish(p.lng, p.lat); }); $("loop").checked = false; }
+  pickFinish = false; $("finishbtn").textContent = finish ? "Clear finish" : "Set finish"; invalidate();
+}
+$("finishbtn").onclick = () => { if (finish) { setFinish(null); $("loop").checked = true; invalidate(); } else { pickFinish = true; $("finishbtn").textContent = "Click the map…"; } };
+// a click that lands on a road, the route or any other drawn shape must never move the start
+map.on("click", e => (e.originalEvent.target.closest && e.originalEvent.target.closest(".leaflet-interactive, .leaflet-marker-icon")) ? null : pickFinish ? setFinish(e.latlng.lng, e.latlng.lat) : setStart(e.latlng.lng, e.latlng.lat));
+$("rad").oninput = () => { if (center) setCenter(center[0], center[1]); renderList(); }; $("minlen").oninput = renderList;
+$("undo").onclick = undo;
+$("reset").onclick = () => { snap(); ride = []; focusId = null; suggestIdx = 0; layerEvents.clearLayers(); $("sugg").style.display = "none"; invalidate(); renderRide(); renderList(); };
+document.addEventListener("keydown", e => { if ((e.ctrlKey || e.metaKey) && e.key === "z" && !/INPUT|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); undo(); } });
+$("build").onclick = () => buildRoute(true); $("dl").onclick = download;
+$("loop").onchange = () => { if ($("loop").checked && finish) setFinish(null); else invalidate(); }; $("conn").onchange = invalidate;
+async function search() {
+  const q = $("q").value.trim(); if (!q) return;
+  const r = await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q=" + encodeURIComponent(q));
+  const j = await r.json();
+  if (!j.length) { $("startlbl").textContent = "Not found; click the map instead."; return; }
+  setStart(+j[0].lon, +j[0].lat, j[0].display_name.split(",").slice(0, 2).join(","));
+  map.setView([+j[0].lat, +j[0].lon], 9);
+}
+$("go").onclick = search; $("q").onkeydown = e => { if (e.key === "Enter") search(); };
+
+fetch("../data/candidates.json", {cache: "no-store"}).then(r => r.json()).then(d => {
+  DATA = d; W = {...d.weights}; renderWeights(); renderList(); renderRide();
+  const home = loadHome(); if (home) { $("gohome").disabled = false; useHome(home); return; }
+  const all = L.featureGroup(Object.values(lines)); if (all.getLayers().length) map.fitBounds(all.getBounds());
+});
+</script>
+</body>
+</html>

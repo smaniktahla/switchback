@@ -1,0 +1,229 @@
+road,longest_run_windows,run_start_idx,windows,share_above,thr,kind,highway,region,chain_km,unpaved,surf_tagged
+us129_dragon_deals_gap_tabcat,17,0.0,17,1.0,150,reference,,,,,
+us165_cherohala_skyway,18,30.0,66,0.803030303030303,150,reference,,,,,
+us211_climb_km6_thornton_gap,4,0.0,4,1.0,150,reference,,,,,
+us211_sperryville_thornton_gap,4,6.0,10,0.4,150,reference,,,,,
+1612,1,0.0,1,1.0,150,ordinary,unclassified,TN/NC,1.931102307971701,1.0,1.0
+Allegheny Loop Road,1,2.0,4,0.25,150,ordinary,tertiary,TN/NC,4.573605889414091,0.0,0.0
+Bald River Road,4,0.0,4,1.0,150,ordinary,unclassified,TN/NC,4.402858296586263,1.0,1.0
+Bank Street,1,1.0,2,0.5,150,ordinary,tertiary,TN/NC,2.7214970461700303,0.0,1.0
+Baumgardner Road,2,0.0,2,1.0,150,ordinary,unclassified,TN/NC,2.954139540227504,0.0,0.0
+Bent Creek Trail,2,0.0,2,1.0,150,ordinary,unclassified,TN/NC,2.41089329463791,0.0,0.0
+Cades Cove Loop Road,10,5.0,15,0.8666666666666667,150,ordinary,tertiary,TN/NC,15.792799793356716,0.0,1.0
+Cane Creek Road,2,0.0,2,1.0,150,ordinary,unclassified,TN/NC,2.6809119283659357,0.0,0.0
+Chota Road,1,1.0,2,0.5,150,ordinary,tertiary,TN/NC,3.0776174813838297,0.0,0.9260041536477438
+Citico Road,6,0.0,6,1.0,150,ordinary,unclassified,TN/NC,7.019465127400739,0.0,0.0
+Cold Spring Road,2,0.0,2,1.0,150,ordinary,unclassified,TN/NC,2.944887715943012,0.0,0.0
+Cold Spring Road,7,0.0,7,1.0,150,ordinary,unclassified,TN/NC,8.157631108737066,0.0,0.0
+Coning Road,0,,2,0.0,150,ordinary,unclassified,TN/NC,2.4532311944943803,0.0,0.0
+Donnelly Branch Road,1,0.0,1,1.0,150,ordinary,unclassified,TN/NC,2.001948109452375,0.0,0.0
+Doublecamp Creek Road,9,0.0,9,1.0,150,ordinary,unclassified,TN/NC,9.95238725688487,0.0,0.0
+Epperson Road,3,0.0,4,0.75,150,ordinary,unclassified,TN/NC,4.396262950297643,0.0,0.0
+FS 81,2,0.0,2,1.0,150,ordinary,unclassified,TN/NC,2.4222335082788886,0.9175491849974348,1.0
+Fairview Road,3,2.0,14,0.2857142857142857,150,ordinary,tertiary,TN/NC,15.002277650429823,0.0,0.0
+Farmview Road,2,0.0,5,0.6,150,ordinary,unclassified,VA,5.732003699596101,0.0,0.0
+Fontana Dam Road,2,0.0,2,1.0,150,ordinary,unclassified,TN/NC,2.4814647161907617,0.0,1.0
+Foothills Parkway,5,2.0,17,0.47058823529411764,150,ordinary,secondary,TN/NC,17.51750955263686,0.0,1.0
+Forest Road,5,0.0,5,1.0,150,ordinary,unclassified,TN/NC,5.609873077450227,1.0,1.0
+Forest Service Road,3,0.0,3,1.0,150,ordinary,unclassified,TN/NC,3.7173606680114775,1.0,1.0
+Gamble Gap Road,1,3.0,4,0.25,150,ordinary,unclassified,TN/NC,4.833593208625911,0.0,0.0
+Holder Cemetery Road,2,0.0,2,1.0,150,ordinary,unclassified,TN/NC,2.554004924636125,1.0,1.0
+Hollow Run Road,1,2.0,3,0.3333333333333333,150,ordinary,unclassified,VA,3.882390483013826,0.0,0.0
+Indian Boundary Road,7,0.0,7,1.0,150,ordinary,unclassified,TN/NC,8.227948720682903,0.0,0.0
+Indian Warpath Road,2,1.0,4,0.5,150,ordinary,unclassified,TN/NC,4.455068915523912,0.0,0.0
+Ironsburg Road,0,,1,0.0,150,ordinary,unclassified,TN/NC,2.071664853430407,0.0,0.0
+Little Snowbird Road,3,0.0,3,1.0,150,ordinary,tertiary,TN/NC,3.2207933416655465,0.0,1.0
+Lower Mountain Creek Road,2,0.0,2,1.0,150,ordinary,tertiary,TN/NC,2.2256346887751013,0.0,1.0
+Miller Cemetery Road,3,0.0,3,1.0,150,ordinary,unclassified,TN/NC,3.963613676783557,1.0,1.0
+Mint Road,1,3.0,7,0.14285714285714285,150,ordinary,tertiary,TN/NC,7.838074800916131,0.0,0.0
+Mount Pleasant Road,7,0.0,7,1.0,150,ordinary,unclassified,TN/NC,7.403676180244274,0.0,0.0
+NC 143 Business,5,0.0,5,1.0,150,ordinary,secondary,TN/NC,5.536605467387604,0.0,0.2251459795802608
+NC 143,8,0.0,16,0.8125,150,ordinary,secondary,TN/NC,16.538384559669915,0.0,1.0
+NC 143,4,9.0,14,0.2857142857142857,150,ordinary,secondary,TN/NC,14.157756052133683,0.0,1.0
+NC 28,18,3.0,32,0.875,150,ordinary,secondary,TN/NC,33.13941524040552,0.0,1.0
+Old Federal Road,0,,3,0.0,150,ordinary,tertiary,TN/NC,4.090131481588597,0.0,0.0
+Old Highway 129,2,0.0,2,1.0,150,ordinary,tertiary,TN/NC,2.8444261996538245,0.0,1.0
+Old Mill Road,3,0.0,3,1.0,150,ordinary,unclassified,TN/NC,3.178767143945459,0.0,0.0
+Peals Lane,0,,2,0.0,150,ordinary,unclassified,TN/NC,2.9780937093661333,0.0,0.0
+Rafter Road,10,0.0,11,0.9090909090909091,150,ordinary,unclassified,TN/NC,12.123193680365494,0.0,0.0
+Reagan Valley Road,1,6.0,7,0.14285714285714285,150,ordinary,unclassified,TN/NC,7.864218102729114,0.0,0.0
+Red River Road,2,0.0,2,1.0,150,ordinary,unclassified,TN/NC,2.462468310695941,0.0,0.0
+River Road,17,0.0,28,0.8214285714285714,150,ordinary,unclassified,TN/NC,28.415372699567023,0.0,0.2835089396329928
+Rock Mills Road,1,0.0,4,0.25,150,ordinary,tertiary,VA,4.291963644911992,0.0,0.0
+Rural Vale Road,1,0.0,2,0.5,150,ordinary,unclassified,TN/NC,2.323404464828886,0.0,0.0
+SR 315,1,0.0,7,0.14285714285714285,150,ordinary,secondary,TN/NC,7.989402204866377,0.0,0.0
+SR 336,0,,11,0.0,150,ordinary,secondary,TN/NC,11.33124734596616,0.0,1.0
+SR 360,2,4.0,14,0.2857142857142857,150,ordinary,secondary,TN/NC,14.690066546557988,0.0,0.0190708153779805
+SR 39,1,9.0,12,0.16666666666666666,150,ordinary,primary,TN/NC,12.60427050171956,0.0,0.4792767255986397
+SR 600,5,0.0,6,0.8333333333333334,150,ordinary,unclassified,VA,6.454477665837662,0.9987781716088994,0.9987781716088994
+SR 604,1,0.0,3,0.6666666666666666,150,ordinary,tertiary,VA,3.90590905539439,0.0,1.0
+SR 607,4,2.0,6,0.6666666666666666,150,ordinary,unclassified,VA,6.750032179454176,0.9965681715039134,0.9965681715039134
+SR 611,2,1.0,3,0.6666666666666666,150,ordinary,tertiary,VA,3.676334837709355,0.0,1.0
+SR 611,0,,2,0.0,150,ordinary,unclassified,VA,3.093042269470822,0.0,0.0
+SR 611,2,0.0,2,1.0,150,ordinary,tertiary,VA,2.844548079637524,0.0,1.0
+SR 618,3,2.0,5,0.6,150,ordinary,unclassified,VA,5.718934699094891,0.8639280226030686,1.0
+SR 618,0,,1,0.0,150,ordinary,unclassified,VA,2.104784841535272,0.0,1.0
+SR 620,0,,3,0.0,150,ordinary,tertiary,VA,3.826795108432984,0.0,0.9952862532751116
+SR 621,1,3.0,7,0.14285714285714285,150,ordinary,tertiary,VA,7.195828535310052,0.0,0.4213924363620047
+SR 626,1,0.0,4,0.25,150,ordinary,tertiary,VA,4.260279610637013,0.0,0.0
+SR 626,1,1.0,2,0.5,150,ordinary,tertiary,VA,2.6920689693907898,0.0,0.0
+SR 628,1,0.0,6,0.16666666666666666,150,ordinary,tertiary,VA,6.628951528972933,0.0,0.9605507401630518
+SR 646,2,2.0,4,0.5,150,ordinary,unclassified,VA,4.53030694865467,0.0,0.0
+SR 654,1,0.0,1,1.0,150,ordinary,unclassified,VA,1.883460941925341,0.0,0.0
+SR 667,0,,6,0.0,150,ordinary,tertiary,VA,6.29330570992114,0.0,0.4348995593551575
+SR 668,0,,3,0.0,150,ordinary,unclassified,VA,3.956991206026083,0.0,0.0
+SR 669,1,1.0,6,0.3333333333333333,150,ordinary,unclassified,VA,6.957152616184938,0.098623822496309,0.098623822496309
+SR 681,3,0.0,3,1.0,150,ordinary,unclassified,VA,3.8841812061149192,0.0,0.0
+SR 684,1,3.0,4,0.25,150,ordinary,unclassified,VA,4.678378307599901,1.0,1.0
+SR 684,1,1.0,5,0.2,150,ordinary,unclassified,VA,5.783615659575698,0.0,1.0
+SR 689,0,,11,0.0,150,ordinary,tertiary,VA,11.61269468655378,0.0,1.0
+SR 689,1,0.0,4,0.25,150,ordinary,tertiary,VA,4.228349648629998,0.0,1.0
+SR 68,3,0.0,41,0.21951219512195122,150,ordinary,primary,TN/NC,41.34263388357811,0.0,0.5054602880916245
+SR 707,0,,1,0.0,150,ordinary,tertiary,VA,1.8537953043929944,0.0,1.0
+SR 717,2,0.0,4,0.5,150,ordinary,unclassified,VA,4.785622685100559,1.0,1.0
+Santeelah Dam Road,2,0.0,2,1.0,150,ordinary,tertiary,TN/NC,2.20762770193746,0.0,1.0
+Santeetlah Road,10,0.0,10,1.0,150,ordinary,unclassified,TN/NC,11.007322849879278,0.0,1.0
+Shoal Creek Road,9,0.0,9,1.0,150,ordinary,unclassified,TN/NC,9.888650064159522,0.0,0.0
+Skyline Drive,11,15.0,26,0.7692307692307693,150,ordinary,secondary,VA,26.358239651936117,0.0,1.0
+Skyline Drive,5,6.0,27,0.48148148148148145,150,ordinary,secondary,VA,27.50093578250988,0.0,1.0
+Smith Field Road,2,0.0,2,1.0,150,ordinary,unclassified,TN/NC,2.572359471033057,0.0,0.0
+Snowbird Road;ᏚᏘᏱ ᎦᏅᏅ,3,1.0,4,0.75,150,ordinary,tertiary,TN/NC,5.018749152518422,0.0,1.0
+Steer Creek Road,5,5.0,10,0.5,150,ordinary,unclassified,TN/NC,10.597267457569602,0.0,0.0
+Thunderbird Mountain Road,3,0.0,3,1.0,150,ordinary,tertiary,TN/NC,3.492440936702496,0.0,1.0
+Tipton Loop Road,2,0.0,2,1.0,150,ordinary,unclassified,TN/NC,2.5481754265993315,0.0,0.0
+Towee Falls Road,6,0.0,11,0.9090909090909091,150,ordinary,unclassified,TN/NC,11.902479407074315,0.0,0.0
+Turkey Creek Road,1,0.0,1,1.0,150,ordinary,unclassified,TN/NC,1.6739753397816803,0.0,0.0
+US 129;NC 143,0,,2,0.0,150,ordinary,primary,TN/NC,2.3453851544103967,0.0,1.0
+US 129,0,,10,0.0,150,ordinary,primary,TN/NC,10.71320389019543,0.0,1.0
+US 129,7,0.0,27,0.6296296296296297,150,ordinary,primary,TN/NC,27.461156029979225,0.0,0.8654067423385214
+US 129,2,3.0,15,0.13333333333333333,150,ordinary,primary,TN/NC,15.203396794983602,0.0,1.0
+US 211 BUS,0,,2,0.0,150,ordinary,secondary,VA,2.752989609795953,0.0,1.0
+US 211 BUS,1,1.0,2,0.5,150,ordinary,secondary,VA,2.461117015965521,0.0,0.821177913599128
+US 211;US 522,0,,11,0.0,150,ordinary,trunk,VA,11.769152730330118,0.0,1.0
+US 211;US 522,0,,11,0.0,150,ordinary,trunk,VA,11.182402535961051,0.0,1.0
+US 211,5,0.0,5,1.0,150,ordinary,trunk,VA,5.8447746100292095,0.0,1.0
+US 211,0,,7,0.0,150,ordinary,trunk,VA,7.7986493730862225,0.0,1.0
+US 211,0,,7,0.0,150,ordinary,trunk,VA,7.831684637247259,0.0,1.0
+US 211,1,0.0,1,1.0,150,ordinary,trunk,VA,1.8052662716323524,0.0,1.0
+US 340,0,,12,0.0,150,ordinary,primary,VA,13.076909583028314,0.0,1.0
+US 522,0,,15,0.0,150,ordinary,primary,VA,15.201784627557435,0.0,1.0
+VA 231,0,,13,0.0,150,ordinary,primary,VA,13.16059280727782,0.0,1.0
+Wilson Station Road,4,0.0,4,1.0,150,ordinary,unclassified,TN/NC,4.269373858048953,0.0,0.0
+unnamed:1554285890,2,0.0,2,1.0,150,ordinary,unclassified,TN/NC,2.5021213495289443,0.0,0.0
+unnamed:19557895,4,0.0,4,1.0,150,ordinary,unclassified,TN/NC,4.386494924573693,0.0,0.0
+unnamed:19559152,1,0.0,1,1.0,150,ordinary,unclassified,TN/NC,2.008194884235597,0.0,0.0
+unnamed:20388289,1,0.0,1,1.0,150,ordinary,unclassified,VA,1.67354078831048,1.0,1.0
+us129_dragon_deals_gap_tabcat,17,0.0,17,1.0,250,reference,,,,,
+us165_cherohala_skyway,5,38.0,66,0.4393939393939394,250,reference,,,,,
+us211_climb_km6_thornton_gap,3,1.0,4,0.75,250,reference,,,,,
+us211_sperryville_thornton_gap,3,7.0,10,0.3,250,reference,,,,,
+1612,1,0.0,1,1.0,250,ordinary,unclassified,TN/NC,1.931102307971701,1.0,1.0
+Allegheny Loop Road,1,2.0,4,0.25,250,ordinary,tertiary,TN/NC,4.573605889414091,0.0,0.0
+Bald River Road,4,0.0,4,1.0,250,ordinary,unclassified,TN/NC,4.402858296586263,1.0,1.0
+Bank Street,0,,2,0.0,250,ordinary,tertiary,TN/NC,2.7214970461700303,0.0,1.0
+Baumgardner Road,0,,2,0.0,250,ordinary,unclassified,TN/NC,2.954139540227504,0.0,0.0
+Bent Creek Trail,1,0.0,2,0.5,250,ordinary,unclassified,TN/NC,2.41089329463791,0.0,0.0
+Cades Cove Loop Road,5,5.0,15,0.8,250,ordinary,tertiary,TN/NC,15.792799793356716,0.0,1.0
+Cane Creek Road,2,0.0,2,1.0,250,ordinary,unclassified,TN/NC,2.6809119283659357,0.0,0.0
+Chota Road,0,,2,0.0,250,ordinary,tertiary,TN/NC,3.0776174813838297,0.0,0.9260041536477438
+Citico Road,5,1.0,6,0.8333333333333334,250,ordinary,unclassified,TN/NC,7.019465127400739,0.0,0.0
+Cold Spring Road,2,0.0,2,1.0,250,ordinary,unclassified,TN/NC,2.944887715943012,0.0,0.0
+Cold Spring Road,7,0.0,7,1.0,250,ordinary,unclassified,TN/NC,8.157631108737066,0.0,0.0
+Coning Road,0,,2,0.0,250,ordinary,unclassified,TN/NC,2.4532311944943803,0.0,0.0
+Donnelly Branch Road,1,0.0,1,1.0,250,ordinary,unclassified,TN/NC,2.001948109452375,0.0,0.0
+Doublecamp Creek Road,4,0.0,9,0.7777777777777778,250,ordinary,unclassified,TN/NC,9.95238725688487,0.0,0.0
+Epperson Road,0,,4,0.0,250,ordinary,unclassified,TN/NC,4.396262950297643,0.0,0.0
+FS 81,2,0.0,2,1.0,250,ordinary,unclassified,TN/NC,2.4222335082788886,0.9175491849974348,1.0
+Fairview Road,2,2.0,14,0.14285714285714285,250,ordinary,tertiary,TN/NC,15.002277650429823,0.0,0.0
+Farmview Road,0,,5,0.0,250,ordinary,unclassified,VA,5.732003699596101,0.0,0.0
+Fontana Dam Road,2,0.0,2,1.0,250,ordinary,unclassified,TN/NC,2.4814647161907617,0.0,1.0
+Foothills Parkway,0,,17,0.0,250,ordinary,secondary,TN/NC,17.51750955263686,0.0,1.0
+Forest Road,5,0.0,5,1.0,250,ordinary,unclassified,TN/NC,5.609873077450227,1.0,1.0
+Forest Service Road,3,0.0,3,1.0,250,ordinary,unclassified,TN/NC,3.7173606680114775,1.0,1.0
+Gamble Gap Road,0,,4,0.0,250,ordinary,unclassified,TN/NC,4.833593208625911,0.0,0.0
+Holder Cemetery Road,2,0.0,2,1.0,250,ordinary,unclassified,TN/NC,2.554004924636125,1.0,1.0
+Hollow Run Road,0,,3,0.0,250,ordinary,unclassified,VA,3.882390483013826,0.0,0.0
+Indian Boundary Road,3,4.0,7,0.5714285714285714,250,ordinary,unclassified,TN/NC,8.227948720682903,0.0,0.0
+Indian Warpath Road,0,,4,0.0,250,ordinary,unclassified,TN/NC,4.455068915523912,0.0,0.0
+Ironsburg Road,0,,1,0.0,250,ordinary,unclassified,TN/NC,2.071664853430407,0.0,0.0
+Little Snowbird Road,1,0.0,3,0.3333333333333333,250,ordinary,tertiary,TN/NC,3.2207933416655465,0.0,1.0
+Lower Mountain Creek Road,2,0.0,2,1.0,250,ordinary,tertiary,TN/NC,2.2256346887751013,0.0,1.0
+Miller Cemetery Road,1,0.0,3,0.6666666666666666,250,ordinary,unclassified,TN/NC,3.963613676783557,1.0,1.0
+Mint Road,0,,7,0.0,250,ordinary,tertiary,TN/NC,7.838074800916131,0.0,0.0
+Mount Pleasant Road,6,0.0,7,0.8571428571428571,250,ordinary,unclassified,TN/NC,7.403676180244274,0.0,0.0
+NC 143 Business,3,1.0,5,0.6,250,ordinary,secondary,TN/NC,5.536605467387604,0.0,0.2251459795802608
+NC 143,3,5.0,16,0.5625,250,ordinary,secondary,TN/NC,16.538384559669915,0.0,1.0
+NC 143,0,,14,0.0,250,ordinary,secondary,TN/NC,14.157756052133683,0.0,1.0
+NC 28,8,5.0,32,0.53125,250,ordinary,secondary,TN/NC,33.13941524040552,0.0,1.0
+Old Federal Road,0,,3,0.0,250,ordinary,tertiary,TN/NC,4.090131481588597,0.0,0.0
+Old Highway 129,2,0.0,2,1.0,250,ordinary,tertiary,TN/NC,2.8444261996538245,0.0,1.0
+Old Mill Road,1,1.0,3,0.3333333333333333,250,ordinary,unclassified,TN/NC,3.178767143945459,0.0,0.0
+Peals Lane,0,,2,0.0,250,ordinary,unclassified,TN/NC,2.9780937093661333,0.0,0.0
+Rafter Road,7,0.0,11,0.8181818181818182,250,ordinary,unclassified,TN/NC,12.123193680365494,0.0,0.0
+Reagan Valley Road,0,,7,0.0,250,ordinary,unclassified,TN/NC,7.864218102729114,0.0,0.0
+Red River Road,1,1.0,2,0.5,250,ordinary,unclassified,TN/NC,2.462468310695941,0.0,0.0
+River Road,5,12.0,28,0.4642857142857143,250,ordinary,unclassified,TN/NC,28.415372699567023,0.0,0.2835089396329928
+Rock Mills Road,0,,4,0.0,250,ordinary,tertiary,VA,4.291963644911992,0.0,0.0
+Rural Vale Road,0,,2,0.0,250,ordinary,unclassified,TN/NC,2.323404464828886,0.0,0.0
+SR 315,0,,7,0.0,250,ordinary,secondary,TN/NC,7.989402204866377,0.0,0.0
+SR 336,0,,11,0.0,250,ordinary,secondary,TN/NC,11.33124734596616,0.0,1.0
+SR 360,0,,14,0.0,250,ordinary,secondary,TN/NC,14.690066546557988,0.0,0.0190708153779805
+SR 39,0,,12,0.0,250,ordinary,primary,TN/NC,12.60427050171956,0.0,0.4792767255986397
+SR 600,1,0.0,6,0.3333333333333333,250,ordinary,unclassified,VA,6.454477665837662,0.9987781716088994,0.9987781716088994
+SR 604,0,,3,0.0,250,ordinary,tertiary,VA,3.90590905539439,0.0,1.0
+SR 607,1,3.0,6,0.3333333333333333,250,ordinary,unclassified,VA,6.750032179454176,0.9965681715039134,0.9965681715039134
+SR 611,1,1.0,3,0.3333333333333333,250,ordinary,tertiary,VA,3.676334837709355,0.0,1.0
+SR 611,0,,2,0.0,250,ordinary,unclassified,VA,3.093042269470822,0.0,0.0
+SR 611,0,,2,0.0,250,ordinary,tertiary,VA,2.844548079637524,0.0,1.0
+SR 618,3,2.0,5,0.6,250,ordinary,unclassified,VA,5.718934699094891,0.8639280226030686,1.0
+SR 618,0,,1,0.0,250,ordinary,unclassified,VA,2.104784841535272,0.0,1.0
+SR 620,0,,3,0.0,250,ordinary,tertiary,VA,3.826795108432984,0.0,0.9952862532751116
+SR 621,0,,7,0.0,250,ordinary,tertiary,VA,7.195828535310052,0.0,0.4213924363620047
+SR 626,0,,4,0.0,250,ordinary,tertiary,VA,4.260279610637013,0.0,0.0
+SR 626,0,,2,0.0,250,ordinary,tertiary,VA,2.6920689693907898,0.0,0.0
+SR 628,0,,6,0.0,250,ordinary,tertiary,VA,6.628951528972933,0.0,0.9605507401630518
+SR 646,1,3.0,4,0.25,250,ordinary,unclassified,VA,4.53030694865467,0.0,0.0
+SR 654,0,,1,0.0,250,ordinary,unclassified,VA,1.883460941925341,0.0,0.0
+SR 667,0,,6,0.0,250,ordinary,tertiary,VA,6.29330570992114,0.0,0.4348995593551575
+SR 668,0,,3,0.0,250,ordinary,unclassified,VA,3.956991206026083,0.0,0.0
+SR 669,0,,6,0.0,250,ordinary,unclassified,VA,6.957152616184938,0.098623822496309,0.098623822496309
+SR 681,3,0.0,3,1.0,250,ordinary,unclassified,VA,3.8841812061149192,0.0,0.0
+SR 684,0,,4,0.0,250,ordinary,unclassified,VA,4.678378307599901,1.0,1.0
+SR 684,0,,5,0.0,250,ordinary,unclassified,VA,5.783615659575698,0.0,1.0
+SR 689,0,,11,0.0,250,ordinary,tertiary,VA,11.61269468655378,0.0,1.0
+SR 689,0,,4,0.0,250,ordinary,tertiary,VA,4.228349648629998,0.0,1.0
+SR 68,1,0.0,41,0.07317073170731707,250,ordinary,primary,TN/NC,41.34263388357811,0.0,0.5054602880916245
+SR 707,0,,1,0.0,250,ordinary,tertiary,VA,1.8537953043929944,0.0,1.0
+SR 717,0,,4,0.0,250,ordinary,unclassified,VA,4.785622685100559,1.0,1.0
+Santeelah Dam Road,2,0.0,2,1.0,250,ordinary,tertiary,TN/NC,2.20762770193746,0.0,1.0
+Santeetlah Road,6,1.0,10,0.7,250,ordinary,unclassified,TN/NC,11.007322849879278,0.0,1.0
+Shoal Creek Road,5,4.0,9,0.6666666666666666,250,ordinary,unclassified,TN/NC,9.888650064159522,0.0,0.0
+Skyline Drive,7,18.0,26,0.46153846153846156,250,ordinary,secondary,VA,26.358239651936117,0.0,1.0
+Skyline Drive,1,20.0,27,0.037037037037037035,250,ordinary,secondary,VA,27.50093578250988,0.0,1.0
+Smith Field Road,2,0.0,2,1.0,250,ordinary,unclassified,TN/NC,2.572359471033057,0.0,0.0
+Snowbird Road;ᏚᏘᏱ ᎦᏅᏅ,1,1.0,4,0.5,250,ordinary,tertiary,TN/NC,5.018749152518422,0.0,1.0
+Steer Creek Road,1,5.0,10,0.3,250,ordinary,unclassified,TN/NC,10.597267457569602,0.0,0.0
+Thunderbird Mountain Road,3,0.0,3,1.0,250,ordinary,tertiary,TN/NC,3.492440936702496,0.0,1.0
+Tipton Loop Road,1,0.0,2,0.5,250,ordinary,unclassified,TN/NC,2.5481754265993315,0.0,0.0
+Towee Falls Road,1,0.0,11,0.36363636363636365,250,ordinary,unclassified,TN/NC,11.902479407074315,0.0,0.0
+Turkey Creek Road,1,0.0,1,1.0,250,ordinary,unclassified,TN/NC,1.6739753397816803,0.0,0.0
+US 129;NC 143,0,,2,0.0,250,ordinary,primary,TN/NC,2.3453851544103967,0.0,1.0
+US 129,0,,10,0.0,250,ordinary,primary,TN/NC,10.71320389019543,0.0,1.0
+US 129,2,0.0,27,0.14814814814814814,250,ordinary,primary,TN/NC,27.461156029979225,0.0,0.8654067423385214
+US 129,0,,15,0.0,250,ordinary,primary,TN/NC,15.203396794983602,0.0,1.0
+US 211 BUS,0,,2,0.0,250,ordinary,secondary,VA,2.752989609795953,0.0,1.0
+US 211 BUS,0,,2,0.0,250,ordinary,secondary,VA,2.461117015965521,0.0,0.821177913599128
+US 211;US 522,0,,11,0.0,250,ordinary,trunk,VA,11.769152730330118,0.0,1.0
+US 211;US 522,0,,11,0.0,250,ordinary,trunk,VA,11.182402535961051,0.0,1.0
+US 211,2,0.0,5,0.6,250,ordinary,trunk,VA,5.8447746100292095,0.0,1.0
+US 211,0,,7,0.0,250,ordinary,trunk,VA,7.7986493730862225,0.0,1.0
+US 211,0,,7,0.0,250,ordinary,trunk,VA,7.831684637247259,0.0,1.0
+US 211,1,0.0,1,1.0,250,ordinary,trunk,VA,1.8052662716323524,0.0,1.0
+US 340,0,,12,0.0,250,ordinary,primary,VA,13.076909583028314,0.0,1.0
+US 522,0,,15,0.0,250,ordinary,primary,VA,15.201784627557435,0.0,1.0
+VA 231,0,,13,0.0,250,ordinary,primary,VA,13.16059280727782,0.0,1.0
+Wilson Station Road,2,0.0,4,0.5,250,ordinary,unclassified,TN/NC,4.269373858048953,0.0,0.0
+unnamed:1554285890,2,0.0,2,1.0,250,ordinary,unclassified,TN/NC,2.5021213495289443,0.0,0.0
+unnamed:19557895,4,0.0,4,1.0,250,ordinary,unclassified,TN/NC,4.386494924573693,0.0,0.0
+unnamed:19559152,1,0.0,1,1.0,250,ordinary,unclassified,TN/NC,2.008194884235597,0.0,0.0
+unnamed:20388289,1,0.0,1,1.0,250,ordinary,unclassified,VA,1.67354078831048,1.0,1.0

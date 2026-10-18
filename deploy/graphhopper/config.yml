@@ -1,0 +1,22 @@
+# GraphHopper 11.1 for Switchback route planning: VA + MD + WV + DC clipped to the DC-area bbox.
+# 2D (no elevation). Used only to connect chosen road segments; the segments themselves are drawn from OSM geometry.
+graphhopper:
+  datareader.file: /data/region.osm.pbf
+  graph.location: /data/graph-cache
+  import.osm.ignored_highways: footway,cycleway,path,pedestrian,steps,bridleway,corridor,track
+  profiles:
+    - name: motorcycle          # prefers curvy roads (curvature.json); detours a lot
+      custom_model_files: [motorcycle.json, curvature.json]
+    - name: car                 # plain fast connectors
+      custom_model_files: [car.json]
+  graph.encoded_values: car_access, track_type, road_access, road_class, curvature, car_average_speed, surface
+
+server:
+  application_connectors:
+    - type: http
+      port: 8989
+      bind_host: 0.0.0.0
+  admin_connectors:
+    - type: http
+      port: 8990
+      bind_host: 127.0.0.1

@@ -1,0 +1,35 @@
+# Reference road definitions. Edit this file to add roads; analysis code never changes.
+# A road is a directed path through OSM ways between two OSM node ids, so the
+# segment is exactly reproducible. Ratings live separately in data_in/ratings.csv.
+roads:
+  us211_sperryville_thornton_gap:
+    description: "US-211 westbound, Sperryville (west end of US-522 concurrency) to the Thornton Gap junction"
+    refs: ["US 211"]
+    pbfs: [virginia]
+    bbox: [-78.45, 38.55, -78.15, 38.78]   # lon_min, lat_min, lon_max, lat_max
+    start_node: 218221479
+    end_node: 1350011425
+    gh_check: {via_every_m: 1000, only_road_class: TRUNK}   # edges are short here; via points keep GraphHopper on this road
+    status: provisional_endpoints   # end_node is my reading of the Thornton Gap junction; confirm
+  us129_dragon_deals_gap_tabcat:
+    description: "US-129 'Tail of the Dragon', Deals Gap northwest to Tabcat Creek"
+    refs: ["US 129"]
+    pbfs: [tennessee, north-carolina]
+    bbox: [-84.05, 35.40, -83.80, 35.65]
+    start_node: 13125379482     # at OSM 'Deals Gap' node 2454879737
+    end_node: 2991387057        # beside 'Tabcat Creek Boat Ramp' node 10805826054
+    status: provisional_endpoints
+  us165_cherohala_skyway:
+    description: "Cherohala Skyway (TN SR 165 / NC 143) eastbound, Tellico Plains (SR 68) to the end of the named Skyway at Santeetlah"
+    refs: ["SR 165", "NC 143"]
+    names: ["Cherohala Skyway"]   # one Skyway way has no ref tag
+    pbfs: [tennessee, north-carolina]
+    bbox: [-84.40, 35.25, -83.78, 35.45]
+    start_node: 203160202     # SR 68 junction, Tellico Plains
+    end_node: 170974882       # last node named "Cherohala Skyway" (Santeetlah); 41.6 mi vs published ~43
+    status: provisional_endpoints
+  us211_climb_km6_thornton_gap:
+    description: "Sub-segment of the US-211 reference road: the climb, starting ~6 km after the Sperryville start"
+    parent: us211_sperryville_thornton_gap
+    from_m: 6000          # cumulative metres on the parent; snapped to the nearest parent node
+    status: provisional_endpoints

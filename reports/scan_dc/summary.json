@@ -1,0 +1,19 @@
+{
+ "raw_stretches": 48,
+ "after_dedup": 48,
+ "top_n": 40,
+ "us211_reference_ranks": [
+  3
+ ],
+ "by_state_top40": {
+  "VA": 20,
+  "MD": 10,
+  "WV": 10
+ },
+ "by_state_all": {
+  "VA": 25,
+  "MD": 12,
+  "WV": 11
+ },
+ "length_km_median_top40": 3.75
+}

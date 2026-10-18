@@ -1,0 +1,12 @@
+road_key,region,highway,windows,similar,med_deg_per_km,nearest
+SR 68,TN/NC,primary,41,3,62.770839320419384,us165_cherohala_skyway
+US 522,VA,primary,15,2,21.524130028543382,us165_cherohala_skyway
+SR 315,TN/NC,secondary,7,2,131.02165708932162,us165_cherohala_skyway
+Skyline Drive,VA,secondary,53,1,192.27987572845052,us165_cherohala_skyway
+NC 28,TN/NC,secondary,32,1,256.79260684713176,us165_cherohala_skyway
+NC 143,TN/NC,secondary,30,1,167.73784302056714,us165_cherohala_skyway
+River Road,TN/NC,unclassified,28,1,231.53653522735806,us165_cherohala_skyway
+Fairview Road,TN/NC,tertiary,14,1,134.34015483755775,us165_cherohala_skyway
+SR 360,TN/NC,secondary,14,1,108.69917079773242,us165_cherohala_skyway
+Rafter Road,TN/NC,unclassified,11,1,294.8738794786152,us165_cherohala_skyway
+Reagan Valley Road,TN/NC,unclassified,7,1,47.61392362708295,us165_cherohala_skyway

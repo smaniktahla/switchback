@@ -1,0 +1,23 @@
+# Switchback MVP: discovery filter + default ranking weights. Edit and re-run scripts/mvp_build.py.
+# Discovery reuses the Phase-1 geometry scan (scan_region.scan_chain) with generic "twisty enough" bounds
+# (lower bounds only, so Dragon-style roads are not excluded the way the US-211 template range excluded them).
+discovery:
+  min_deg_per_km: 150        # heading change per km of the 1 km windows
+  max_radius_p50_m: 300      # median corner radius
+  min_turns_per_km_45: 1.3   # turns >= 45 deg per km
+  max_frac_straight: 0.55
+  dedupe_km: 1.5
+
+# Ranking: each component is scored 0..1 in scripts/mvp_build.py (see src/switchback/rank.py for the exact formulas);
+# the UI recomputes score = sum(weight * component) / sum(weight) live, so these are only the defaults.
+weights:
+  twistiness: 3     # heading change per km, saturating around 500 deg/km
+  corner_chain: 2   # longest chain of >=30 deg corners with gaps <= 100 m
+  flow: 3           # few signals/stops/give-ways/public junctions; long gaps between them
+  speed: 2          # speed-limit environment: best around 35-50 mph, poor <= 25 mph
+  traffic: 1.5      # lower AADT is better (informational, VA/MD only; unknown = neutral 0.5)
+  length: 1         # 4-12 km is the sweet spot
+
+# Hand-written informational notes shown on matching candidates (substring match on road name). Not used in ranking.
+notes:
+  "Skyline Drive": "Shenandoah National Park: entrance fee, 35 mph, deer and tourist traffic."

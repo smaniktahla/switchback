@@ -1,0 +1,19 @@
+# GraphHopper 11.1 release, 2D (no elevation) so the curvature edge values are directly reproducible.
+graphhopper:
+  datareader.file: /data/clip.osm.pbf
+  graph.location: /data/graph-cache
+  import.osm.ignored_highways: footway,cycleway,path,pedestrian,steps,bridleway,corridor
+  profiles:
+    - name: motorcycle
+      custom_model_files: [motorcycle.json, curvature.json]
+  graph.encoded_values: car_access, track_type, road_access, road_class, curvature, car_average_speed, surface
+
+server:
+  application_connectors:
+    - type: http
+      port: 8989
+      bind_host: 0.0.0.0
+  admin_connectors:
+    - type: http
+      port: 8990
+      bind_host: 127.0.0.1

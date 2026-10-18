@@ -1,0 +1,7 @@
+# OSM extracts used (downloaded 2026-10-16 from Geofabrik *-latest; re-downloading gives newer data)
+sources:
+  virginia: {url: https://download.geofabrik.de/north-america/us/virginia-latest.osm.pbf, sha256: 3804999ef7c52b1a4203e97323227c13a6ab0f7f584fa6aaa4b64dfe7e8b2dcc, bytes: 428545948}
+  tennessee: {url: https://download.geofabrik.de/north-america/us/tennessee-latest.osm.pbf, sha256: f0665448a086b6fffbbf5a09ff3648228c19f384709f767e79c82c434c128370, bytes: 190742695}
+  north-carolina: {url: https://download.geofabrik.de/north-america/us/north-carolina-latest.osm.pbf, sha256: 0a66f3bf8066297cd98be355addf64b8364492057fef325d9ad21e74f88cf85c, bytes: 429845990}
+  maryland: {url: https://download.geofabrik.de/north-america/us/maryland-latest.osm.pbf, sha256: 2543ebdcc64c3b28bda3110c6263a5d3d0d9c7a5772534c5dba7ddcaf20c0f86, bytes: 215744686}
+  west-virginia: {url: https://download.geofabrik.de/north-america/us/west-virginia-latest.osm.pbf, sha256: 4fe93f5f22216806b6e153e487a099fe136f12827ce51899ddd27fadaa8ecd03, bytes: 99180557}
