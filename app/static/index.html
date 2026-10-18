@@ -67,7 +67,20 @@
   .tbl { width:100%; border-collapse:collapse; font-size:13px; } .tbl th { text-align:left; color:var(--mute); font-weight:500; } .tbl td, .tbl th { padding:6px 4px; border-bottom:1px solid var(--line); vertical-align:top; }
   .tbl tr.off td { opacity:.55; } .acts { display:flex; flex-wrap:wrap; gap:4px; } .acts button { font-size:12px; padding:2px 7px; }
   .copy { display:flex; gap:6px; margin-top:6px; width:100%; } .copy input { flex:1; font-size:12px; }
-  @media (max-width:900px) { #app { flex-direction:column; } #map { order:1; height:34%; flex:none; } #side { order:2; width:100%; max-width:none; height:36%; border-right:0; } #ride { order:3; width:100%; height:30%; border-left:0; border-top:2px solid var(--accent); } }
+  #tabs, #mapcard { display:none; }
+  @media (max-width:900px) {
+    html, body { height:100dvh; } #app { flex-direction:column; height:100dvh; }
+    #side, #ride, #map { width:100%; max-width:none; flex:1; min-height:0; border:0; height:auto; }
+    #side { overflow:hidden; } #ride { border-top:2px solid var(--accent); }
+    body[data-pane="map"] #side, body[data-pane="map"] #ride, body[data-pane="roads"] #map, body[data-pane="roads"] #ride, body[data-pane="ride"] #map, body[data-pane="ride"] #side { display:none; }
+    #tabs { display:flex; flex:none; height:54px; border-top:1px solid var(--line); background:#fff; padding-bottom:env(safe-area-inset-bottom); }
+    #tabs button { flex:1; border:0; border-radius:0; background:none; font-size:15px; font-weight:600; color:var(--mute); } #tabs button.on { color:var(--accent); box-shadow:inset 0 3px 0 var(--accent); }
+    input, select, button, textarea { font-size:16px; } button { min-height:38px; } .item button, .card .tr button { min-height:34px; padding:3px 9px; }
+    #mapcard { display:block; position:absolute; z-index:1000; left:8px; right:8px; bottom:10px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:10px 12px; box-shadow:0 2px 12px rgba(0,0,0,.25); }
+    #mapcard .row { margin-top:6px; } #mapcard button { flex:1; }
+    #totals { top:6px; max-width:92%; white-space:normal; text-align:center; font-size:13px; padding:4px 12px; } #totals small { display:block; margin:0; }
+    .leaflet-control-zoom { display:none; }
+  }
 </style>
 </head>
 <body>
@@ -86,7 +99,7 @@
         <div class="row"><input id="drawname" type="text" placeholder="Name (e.g. Old Rag Road)"></div>
         <div class="row"><button id="drawundo">Undo point</button><button id="drawsave" class="primary" disabled>Save road</button><button id="drawcancel">Cancel</button></div>
       </div>
-      <div class="row mute"><span id="startlbl">Click the map to set your start.</span></div>
+      <div class="row mute"><span id="startlbl">Tap or click the map to set your start.</span></div>
       <div class="row"><label class="mute" style="white-space:nowrap">Min length <b id="minv"></b></label><input id="minlen" type="range" min="0" max="12" step="0.5" value="3" style="flex:1"></div>
       <div class="row"><label class="mute" style="white-space:nowrap">Within <b id="radv"></b></label><input id="rad" type="range" min="10" max="250" step="5" value="80" style="flex:1"></div>
     </header>
@@ -99,7 +112,7 @@
       <div id="list"></div>
     </div>
     </div>
-  <div id="map"><div id="totals" style="display:none"></div></div>
+  <div id="map"><div id="totals" style="display:none"></div><div id="mapcard" style="display:none"></div></div>
   <div id="ride">
     <h2 style="display:flex;justify-content:space-between;align-items:center"><span>My ride <div class="mute" id="ridesum"></div></span><span style="white-space:nowrap"><button id="undo" title="Undo the last change to the ride" disabled>↶ Undo</button> <button id="reset" title="Clear the ride and route (keeps your start point)">Reset</button></span></h2>
     <div id="items" class="mute">Add roads from the list or by clicking one on the map.</div>
@@ -114,6 +127,7 @@
     </div>
     <div id="msg" class="mute"></div>
   </div>
+  <nav id="tabs"><button data-pane="map" class="on">Map</button><button data-pane="roads">Roads</button><button data-pane="ride">My ride <span id="ridecount"></span></button></nav>
 </div>
 <script src="vendor/leaflet.js"></script>
 <script>
@@ -121,6 +135,22 @@
 const _fetch = window.fetch.bind(window);
 window.fetch = (u, o = {}) => (o.method === "POST" && typeof u === "string" && u.startsWith("/")) ? _fetch(u, {...o, headers: {"Content-Type": "application/json", "X-Requested-With": "switchback", ...(o.headers || {})}}) : _fetch(u, o);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const isMobile = () => matchMedia("(max-width:900px)").matches;
+function setPane(p) {
+  document.body.dataset.pane = p; document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.pane === p));
+  if (p === "map") setTimeout(() => map.invalidateSize(), 50);
+}
+document.body.dataset.pane = "map";
+// phone: tapping a road on the map pops a small card with Add to ride; Find a road / Search results land here too
+function showMapCard(c, sub, onNext) {
+  const el = document.getElementById("mapcard"), inRide = ride.some(r => r.id === c.id);
+  el.style.display = "block";
+  el.innerHTML = `<b>${esc(c.name)}${c.ref ? " " + esc(c.ref) : ""}</b> <span class="badge" style="background:${colorFor(score(c))}">${Math.round(score(c) * 100)}</span><div class="mute">${esc(sub || whereText(c))} · ${D(c.metrics.length_km)}</div>
+    <div class="row"><button id="mc-add" ${inRide ? "disabled" : ""}>${inRide ? "In ride" : "Add to ride"}</button>${onNext ? `<button id="mc-next">Next</button>` : ""}<button id="mc-x">✕</button></div>`;
+  document.getElementById("mc-add").onclick = () => { addToRide(c.id); showMapCard(c, sub, onNext); };
+  if (onNext) document.getElementById("mc-next").onclick = onNext;
+  document.getElementById("mc-x").onclick = () => { el.style.display = "none"; };
+}
 const whereText = c => c.manual ? `added by ${c.added_by} on ${c.added_on}` : c.where;
 // one colour per ride item, shared by the ride list, the map line and its connector (none of them green or purple)
 const PALETTE = ["#ea580c","#2563eb","#0891b2","#dc2626","#ca8a04","#7c2d12","#111827","#0369a1"];
@@ -201,7 +231,7 @@ function drawLines(visible, scores, inRange) {
   for (const c of DATA.candidates) {
     let pl = lines[c.id];
     if (!cases[c.id]) cases[c.id] = L.polyline(c.line.map(p => [p[1], p[0]]), {weight:9, opacity:.9, color:"#fff", interactive:false});
-    if (!pl) { pl = lines[c.id] = L.polyline(c.line.map(p => [p[1], p[0]]), {weight:5, opacity:.9, bubblingMouseEvents:false}); pl.on("click", e => { if (drawMode) drawAdd(e.latlng); else focus(c.id, false); }); pl.bindTooltip(`${c.name} ${c.ref}`, {sticky:true}); }
+    if (!pl) { pl = lines[c.id] = L.polyline(c.line.map(p => [p[1], p[0]]), {weight:5, opacity:.9, bubblingMouseEvents:false}); pl.on("click", e => { if (drawMode) drawAdd(e.latlng); else { focus(c.id, false); if (isMobile()) showMapCard(c); } }); pl.bindTooltip(`${c.name} ${c.ref}`, {sticky:true}); }
     const cs = cases[c.id];
     if (visible.has(c.id)) {
       const f = c.id === focusId, n = ride.findIndex(r => r.id === c.id), dim = !inRange.has(c.id) && n < 0 && !f;
@@ -268,6 +298,7 @@ function renderRide() {
     $("items").appendChild(el);
   });
   const km = ride.reduce((s, r) => s + DATA.candidates.find(x => x.id === r.id).metrics.length_km + (r.ext && exitExt(r.id, r.reverse) ? exitExt(r.id, r.reverse).km : 0), 0);
+  $("ridecount").textContent = ride.length ? `(${ride.length})` : "";
   $("ridesum").textContent = ride.length ? `${ride.length} road${ride.length > 1 ? "s" : ""}, ${D(km)} of chosen road` : "";
   $("build").disabled = !(ride.length && start); $("nextroad").disabled = !ride.length;
   if (ride.length && !start) $("msg").textContent = "Set a start point (search or click the map).";
@@ -348,6 +379,7 @@ function suggest(fromEnd) {
   map.fitBounds(L.latLngBounds([[anchor[1], anchor[0]], ...c.line.map(p => [p[1], p[0]])]), {padding:[40,40], maxZoom:14});
   const el = $("sugg"); el.style.display = "flex"; el.style.flexWrap = "wrap";
   el.innerHTML = `<span><b>${esc(c.name)}${c.ref ? " " + esc(c.ref) : ""}</b>: ${D(d, 0)} ${fromEnd ? "from the end of your last road" : "away"}, ${D(c.metrics.length_km)}, score ${Math.round(score(c) * 100)}</span> <button id="sa">Add to ride</button> <button id="sn">Next</button>`;
+  if (isMobile()) { setPane("map"); showMapCard(c, `${D(d, 0)} ${fromEnd ? "from the end of your last road" : "away"}`, () => { suggestIdx++; suggest(fromEnd); }); }
   $("sa").onclick = () => { addToRide(c.id, rev); $("sugg").style.display = "none"; lastFromEnd = null; };
   $("sn").onclick = () => { suggestIdx++; suggest(fromEnd); };
 }
@@ -423,6 +455,7 @@ $("units").onclick = () => {
   if (lastFromEnd !== null && $("sugg").style.display !== "none") suggest(lastFromEnd);
 };
 unitBtn();
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => setPane(b.dataset.pane));
 $("rad").oninput = () => { if (center) setCenter(center[0], center[1]); renderList(); }; $("minlen").oninput = renderList;
 $("undo").onclick = undo;
 $("reset").onclick = () => { snap(); ride = []; focusId = null; suggestIdx = 0; layerEvents.clearLayers(); $("sugg").style.display = "none"; invalidate(); renderRide(); renderList(); };
