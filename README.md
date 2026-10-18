@@ -4,7 +4,9 @@
 
 **Switchback is an open-source motorcycle route discovery and planning tool that helps you find great riding roads, connect them into a ride, and export the route as GPX.**
 
-Most navigation apps optimize for getting somewhere quickly. Switchback takes a different approach: finding roads worth riding in the first place.
+There are a LOT of motorcycle and driver-focused route-planning tools out there these days. But we're taking a different approach:
+
+Find the twisties for you. Then you put them all together how you want.
 
 It analyzes real road geometry, sustained corner sequences, intersections, speed limits, and available traffic data to identify roads that offer engaging, uninterrupted riding.
 
