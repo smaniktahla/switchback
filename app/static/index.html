@@ -53,14 +53,14 @@
 <div id="app">
   <div id="side">
     <header>
-      <h1>Switchback <small>find a road, plan a ride, export GPX</small></h1>
+      <h1 style="display:flex;align-items:baseline"><span>Switchback <small>find a road, plan a ride, export GPX</small></span><button id="units" style="margin-left:auto;padding:1px 8px" title="Switch between miles and kilometres"></button></h1>
       <div class="row"><input id="q" type="text" placeholder="Start from… (town or address)"><button id="go">Find</button></div>
       <div class="row"><button id="find" class="primary" style="flex:2">Find a road for me</button><button id="here" style="flex:1" title="Search around the middle of the map as you have panned it">Search this area</button></div>
       <div class="row mute" id="sugg" style="display:none"></div>
       <div class="row"><button id="savehome" title="Remember the current start point as Home on this browser">Save as home</button><button id="gohome" title="Jump to your saved home" disabled>Go home</button></div>
       <div class="row mute"><span id="startlbl">Click the map to set your start.</span></div>
-      <div class="row"><label class="mute" style="white-space:nowrap">Min length <b id="minv">3</b> km</label><input id="minlen" type="range" min="0" max="12" step="0.5" value="3" style="flex:1"></div>
-      <div class="row"><label class="mute" style="white-space:nowrap">Within <b id="radv">80</b> km</label><input id="rad" type="range" min="10" max="250" step="5" value="80" style="flex:1"></div>
+      <div class="row"><label class="mute" style="white-space:nowrap">Min length <b id="minv"></b></label><input id="minlen" type="range" min="0" max="12" step="0.5" value="3" style="flex:1"></div>
+      <div class="row"><label class="mute" style="white-space:nowrap">Within <b id="radv"></b></label><input id="rad" type="range" min="10" max="250" step="5" value="80" style="flex:1"></div>
     </header>
     <div id="scroll">
       <details>
@@ -92,6 +92,13 @@
 // one colour per ride item, shared by the ride list, the map line and its connector (none of them green or purple)
 const PALETTE = ["#ea580c","#2563eb","#0891b2","#dc2626","#ca8a04","#7c2d12","#111827","#0369a1"];
 const rideColor = i => PALETTE[i % PALETTE.length];
+// Units: imperial (mi, mph, ft) by default, metric on request; remembered in this browser. All data stays metric internally.
+let units = (() => { try { return localStorage.getItem("switchback.units") || "mi"; } catch { return "mi"; } })();
+const KM = () => units === "mi" ? 0.621371 : 1, UL = () => units === "mi" ? "mi" : "km";
+const D = (km, dp = 1) => `${(km * KM()).toFixed(dp)} ${UL()}`;                 // distance
+const SP = mph => units === "mi" ? `${Math.round(mph)} mph` : `${Math.round(mph * 1.609344)} km/h`;
+const SH = m => units === "mi" ? `${Math.round(m * 3.28084)} ft` : `${Math.round(m)} m`;  // short lengths
+const PER = perKm => (perKm / KM()).toFixed(perKm < 10 ? 1 : 0);                 // "per km" -> "per mi" densities
 const COMP = ["twistiness","corner_chain","flow","speed","traffic","length"];
 const COMP_LABEL = {twistiness:"Twistiness",corner_chain:"Corner chains",flow:"Flow (no stops)",speed:"Speed limit",traffic:"Traffic",length:"Length"};
 const $ = id => document.getElementById(id);
@@ -112,14 +119,14 @@ const distToStart = c => center ? Math.min(...c.line.map(p => hav(center, p))) :
 function fmt(c) {
   const m = c.metrics, he = m.hard_events, hard = Object.entries(he).filter(([,v])=>v).map(([k,v])=>`${v} ${k.replace("_"," ")}`).join(", ") || "none";
   return {
-    chips: [`${m.length_km.toFixed(1)} km`, c.state, `${m.deg_per_km}°/km`, `chain ${m.longest_corner_chain}`,
-      m.speed_median_mph ? `${Math.round(m.speed_median_mph)} mph` : "speed ?", m.aadt ? `${Math.round(m.aadt).toLocaleString()}/day` : "traffic ?",
+    chips: [D(m.length_km), c.state, `${PER(m.deg_per_km)}°/${UL()}`, `chain ${m.longest_corner_chain}`,
+      m.speed_median_mph ? SP(m.speed_median_mph) : "speed ?", m.aadt ? `${Math.round(m.aadt).toLocaleString()}/day` : "traffic ?",
       m.hard_per_km === 0 ? "no stops" : `${m.hard_events ? Object.values(he).reduce((a,b)=>a+b,0) : 0} stops/signals`],
     rows: [["Where", c.where], ["Road", `${c.name} ${c.ref ? "("+c.ref+")" : ""} — ${c.highway}`], ["Surface", c.surface],
-      ["Heading change", `${m.deg_per_km} °/km; ${m.turns_per_km_45} turns ≥45° per km; median radius ${m.radius_p50} m`],
-      ["Corner chains", `longest ${m.longest_corner_chain} corners ≤100 m apart; ${m.corners_30_per_km} corners ≥30° per km`],
-      ["Interruptions", `${hard}; ${m.pub_junctions} public junctions; longest clear run ${(m.longest_clear_m/1000).toFixed(1)} km`],
-      ["Speed limit", m.speed_median_mph ? `median ${Math.round(m.speed_median_mph)} mph (${m.speed_mph_range ? m.speed_mph_range.map(Math.round).join("–") : ""}), tagged on ${Math.round(m.speed_known_share*100)}% of the road` : "not tagged in OSM"],
+      ["Heading change", `${PER(m.deg_per_km)} °/${UL()}; ${PER(m.turns_per_km_45)} turns ≥45° per ${UL()}; median radius ${SH(m.radius_p50)}`],
+      ["Corner chains", `longest ${m.longest_corner_chain} corners ≤${SH(100)} apart; ${PER(m.corners_30_per_km)} corners ≥30° per ${UL()}`],
+      ["Interruptions", `${hard}; ${m.pub_junctions} public junctions; longest clear run ${D(m.longest_clear_m/1000)}`],
+      ["Speed limit", m.speed_median_mph ? `median ${SP(m.speed_median_mph)} (${m.speed_mph_range ? m.speed_mph_range.map(SP).join(" – ") : ""}), tagged on ${Math.round(m.speed_known_share*100)}% of the road` : "not tagged in OSM"],
       ["Traffic", m.aadt ? `~${Math.round(m.aadt).toLocaleString()} vehicles/day (state count, covers ${Math.round(m.aadt_coverage*100)}%)` : "no data (informational only)"]]
   };
 }
@@ -130,19 +137,19 @@ function renderWeights() {
 }
 
 function renderList() {
-  const r = +$("rad").value; $("radv").textContent = r; $("minv").textContent = $("minlen").value;
+  const r = +$("rad").value; $("radv").textContent = D(r, 0); $("minv").textContent = D(+$("minlen").value);
   const rows = DATA.candidates.map(c => ({c, s: score(c), d: distToStart(c)})).filter(x => longEnough(x.c) && (!center || x.d <= r)).sort((a,b) => b.s - a.s);
   if (focusId !== null) {   // the focused road (suggestion or map click) is pinned to the top of the list
     const i = rows.findIndex(x => x.c.id === focusId), fc = DATA.candidates.find(x => x.id === focusId);
     rows.unshift(i >= 0 ? rows.splice(i, 1)[0] : {c: fc, s: score(fc), d: distToStart(fc)});
   }
-  $("list").innerHTML = rows.length ? "" : `<div class="pad mute">No candidates in range. Roads were scanned within ~110 mi of Washington DC (VA, MD, WV).</div>`;
+  $("list").innerHTML = rows.length ? "" : `<div class="pad mute">No candidates in range. Roads were scanned within ~110 mi (180 km) of Washington DC (VA, MD, WV).</div>`;
   for (const {c, s, d} of rows) {
     const f = fmt(c), el = document.createElement("div");
     el.className = "card" + (c.id === focusId ? " focus" : ""); const ri = ride.findIndex(x => x.id === c.id); if (ri >= 0) el.style.boxShadow = `inset 6px 0 0 ${rideColor(ri)}`; if (c.id === focusId) el.style.borderLeft = "5px solid var(--accent)"; el.dataset.id = c.id;
     const inRide = ride.some(x => x.id === c.id);
     el.innerHTML = `<div class="t"><span>${c.name}${c.ref ? ` <span class="mute">${c.ref}</span>` : ""}</span><span class="badge" style="background:${colorFor(s)}">${Math.round(s*100)}</span></div>
-      <div class="mute">${c.where}${center ? ` · ${Math.round(d)} km from search centre` : ""}</div>
+      <div class="mute">${c.where}${center ? ` · ${D(d, 0)} from search centre` : ""}</div>
       <div class="chips">${f.chips.map(x => `<span class="chip">${x}</span>`).join("")}${c.note ? `<span class="chip warn">${c.note}</span>` : ""}${c.surface.startsWith("untagged") ? `<span class="chip warn">surface untagged</span>` : ""}</div>
       <div class="bars">${COMP.map(k => `<div class="bar" title="${COMP_LABEL[k]} ${c.components[k].toFixed(2)}"><i style="width:${c.components[k]*100}%"></i></div>`).join("")}</div>
       ${c.id === focusId ? `<table class="d">${f.rows.map(([a,b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join("")}</table>` : ""}
@@ -189,13 +196,14 @@ const exitExt = (id, reverse) => { const c = DATA.candidates.find(x => x.id === 
 function addToRide(id, reverse = false) { snap(); if (!ride.some(x => x.id === id)) ride.push({id, reverse, ext: !!(exitExt(id, reverse) && exitExt(id, reverse).loop)}); invalidate(); renderRide(); renderList(); }
 // Any change (ride, start, loop, connector mode) re-plans the route automatically; the old route stays on the map until the new one arrives.
 let buildSeq = 0, rebuildTimer = null;
+const showMsg = j => { $("msg").className = "mute"; $("msg").textContent = `${D(j.km)} total: ${D(j.segment_km)} on your chosen roads${j.along_km ? ` + ${D(j.along_km)} along the same road between pieces` : ""} + ${D(j.connector_km)} of connectors (dashed, coloured by the road they lead to; grey = way home).`; };
 const hm = m => `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min`;
 function showTotals(j) {
   const t = $("totals");
   if (!j) { t.style.display = "none"; return; }
   t.style.display = "block";
-  t.innerHTML = `${Math.round(j.km)} km · ~${hm(j.minutes)}<small>${finish ? "start → finish" : "home → home"} · ${Math.round(j.segment_km + (j.along_km || 0))} km chosen roads</small>`;
-  t.title = "Connector times from the routing engine; chosen roads at the tagged speed limit (35 mph if untagged) x 0.85. No stops, fuel or traffic.";
+  t.innerHTML = `${D(j.km, 0)} · ~${hm(j.minutes)}<small>${finish ? "start → finish" : "home → home"} · ${D(j.segment_km + (j.along_km || 0), 0)} chosen roads</small>`;
+  t.title = "Connector times from the routing engine; chosen roads at the tagged speed limit (35 mph / 56 km/h if untagged) x 0.85. No stops, fuel or traffic.";
 }
 function invalidate() {
   clearTimeout(rebuildTimer);
@@ -209,8 +217,8 @@ function renderRide() {
     const c = DATA.candidates.find(x => x.id === r.id), el = document.createElement("div"); el.className = "item";
     const xe = exitExt(r.id, r.reverse);
     el.style.borderLeft = `6px solid ${rideColor(i)}`; el.style.paddingLeft = "6px";
-    el.innerHTML = `<span class="n">${i+1}. ${c.name} ${c.ref} <span class="mute">${c.metrics.length_km.toFixed(1)} km ${r.reverse ? "↩ reversed" : ""}${r.ext && xe ? ` + ${xe.km} km` : ""}</span></span>
-      ${xe ? `<button data-a="ext" title="${xe.loop ? "This road loops back: ride the loop to its end" : "Keep riding this road past the end"}" style="${r.ext ? `background:${rideColor(i)};color:#fff` : ""}">${xe.loop ? "⟳ loop" : "→ on"} +${xe.km}</button>` : ""}
+    el.innerHTML = `<span class="n">${i+1}. ${c.name} ${c.ref} <span class="mute">${D(c.metrics.length_km)} ${r.reverse ? "↩ reversed" : ""}${r.ext && xe ? ` + ${D(xe.km)}` : ""}</span></span>
+      ${xe ? `<button data-a="ext" title="${xe.loop ? "This road loops back: ride the loop to its end" : "Keep riding this road past the end"}" style="${r.ext ? `background:${rideColor(i)};color:#fff` : ""}">${xe.loop ? "⟳ loop" : "→ on"} +${D(xe.km)}</button>` : ""}
       <button data-a="up">↑</button><button data-a="down">↓</button><button data-a="rev">⇄</button><button data-a="rm">✕</button>`;
     el.querySelectorAll("button").forEach(b => b.onclick = () => {
       const a = b.dataset.a; snap();
@@ -225,7 +233,7 @@ function renderRide() {
     $("items").appendChild(el);
   });
   const km = ride.reduce((s, r) => s + DATA.candidates.find(x => x.id === r.id).metrics.length_km + (r.ext && exitExt(r.id, r.reverse) ? exitExt(r.id, r.reverse).km : 0), 0);
-  $("ridesum").textContent = ride.length ? `${ride.length} road${ride.length > 1 ? "s" : ""}, ${km.toFixed(1)} km of chosen road` : "";
+  $("ridesum").textContent = ride.length ? `${ride.length} road${ride.length > 1 ? "s" : ""}, ${D(km)} of chosen road` : "";
   $("build").disabled = !(ride.length && start); $("nextroad").disabled = !ride.length;
   if (ride.length && !start) $("msg").textContent = "Set a start point (search or click the map).";
 }
@@ -245,7 +253,7 @@ async function buildRoute(fit = true) {
       L.polyline(ll, p.kind === "segment" ? {color: col, weight:7, opacity:1, bubblingMouseEvents:false} : p.kind === "along" ? {color: col, weight:5, opacity:1, bubblingMouseEvents:false} : {color: col, weight:4, opacity:.85, dashArray:"8 6", bubblingMouseEvents:false}).bindTooltip(`${p.label}: ${p.km} km`).addTo(layerRoute);
     }
     if (fit || !hadRoute) map.fitBounds(L.polyline(j.points.map(q => [q[1], q[0]])).getBounds(), {padding:[40,40]});
-    $("msg").textContent = `${j.km} km total: ${j.segment_km} km on your chosen roads${j.along_km ? ` + ${j.along_km} km along the same road between pieces` : ""} + ${j.connector_km} km of connectors (dashed, coloured by the road they lead to; grey = way home).`;
+    showMsg(j);
     $("dl").disabled = false; showTotals(j);
   } catch (e) { if (seq !== buildSeq) return; route = null; showTotals(null); layerRoute.clearLayers(); $("dl").disabled = true; $("msg").className = "err"; $("msg").textContent = "Route failed: " + e.message; }
   $("build").disabled = !(ride.length && start);
@@ -274,7 +282,7 @@ function setCenter(lon, lat) {
 $("here").onclick = () => { const c = map.getCenter(); setCenter(c.lng, c.lat); suggestIdx = 0; $("startlbl").textContent = $("startlbl").textContent.replace(/ \(searching.*$/, "") + " (searching around map centre)"; suggest(false); };
 
 // "Find a road for me": best nearby road, trading score against distance (0.4 score points per 100 km).
-let suggestIdx = 0, lastQ = "";
+let suggestIdx = 0, lastQ = "", lastFromEnd = null;
 async function findForMe() {
   const q = $("q").value.trim();
   if (q && q !== lastQ) { lastQ = q; await search(); }
@@ -291,6 +299,7 @@ async function findForMe() {
 // Suggest the best road near `anchor` (start point, or the end of the last road in the ride), skipping roads already in the ride.
 // From a road's end we enter the candidate at whichever of its two ends is closer, and flag it reversed if that is its far end.
 function suggest(fromEnd) {
+  lastFromEnd = fromEnd;
   const anchor = fromEnd ? lastEnd() : center, used = new Set(ride.map(r => r.id));
   const ranked = DATA.candidates.filter(c => !used.has(c.id) && longEnough(c)).map(c => {
     const a = hav(anchor, c.line[0]), z = hav(anchor, c.line[c.line.length - 1]);
@@ -303,8 +312,8 @@ function suggest(fromEnd) {
   focus(c.id, false);
   map.fitBounds(L.latLngBounds([[anchor[1], anchor[0]], ...c.line.map(p => [p[1], p[0]])]), {padding:[40,40], maxZoom:14});
   const el = $("sugg"); el.style.display = "flex"; el.style.flexWrap = "wrap";
-  el.innerHTML = `<span><b>${c.name}${c.ref ? " " + c.ref : ""}</b>: ${Math.round(d)} km ${fromEnd ? "from the end of your last road" : "away"}, ${c.metrics.length_km.toFixed(1)} km, score ${Math.round(score(c) * 100)}</span> <button id="sa">Add to ride</button> <button id="sn">Next</button>`;
-  $("sa").onclick = () => { addToRide(c.id, rev); $("sugg").style.display = "none"; };
+  el.innerHTML = `<span><b>${c.name}${c.ref ? " " + c.ref : ""}</b>: ${D(d, 0)} ${fromEnd ? "from the end of your last road" : "away"}, ${D(c.metrics.length_km)}, score ${Math.round(score(c) * 100)}</span> <button id="sa">Add to ride</button> <button id="sn">Next</button>`;
+  $("sa").onclick = () => { addToRide(c.id, rev); $("sugg").style.display = "none"; lastFromEnd = null; };
   $("sn").onclick = () => { suggestIdx++; suggest(fromEnd); };
 }
 const lastEnd = () => { const r = ride[ride.length - 1], l = DATA.candidates.find(x => x.id === r.id).line, e = r.ext && exitExt(r.id, r.reverse); return e ? e.line[e.line.length - 1] : r.reverse ? l[0] : l[l.length - 1]; };
@@ -338,6 +347,13 @@ function setFinish(lon, lat) {
 $("finishbtn").onclick = () => { if (finish) { setFinish(null); $("loop").checked = true; invalidate(); } else { pickFinish = true; $("finishbtn").textContent = "Click the map…"; } };
 // a click that lands on a road, the route or any other drawn shape must never move the start
 map.on("click", e => (e.originalEvent.target.closest && e.originalEvent.target.closest(".leaflet-interactive, .leaflet-marker-icon")) ? null : pickFinish ? setFinish(e.latlng.lng, e.latlng.lat) : setStart(e.latlng.lng, e.latlng.lat));
+const unitBtn = () => { $("units").textContent = units === "mi" ? "mi ⇄ km" : "km ⇄ mi"; };
+$("units").onclick = () => {
+  units = units === "mi" ? "km" : "mi"; try { localStorage.setItem("switchback.units", units); } catch {}
+  unitBtn(); renderWeights && 0; renderList(); renderRide(); if (route) { showTotals(route); showMsg(route); }
+  if (lastFromEnd !== null && $("sugg").style.display !== "none") suggest(lastFromEnd);
+};
+unitBtn();
 $("rad").oninput = () => { if (center) setCenter(center[0], center[1]); renderList(); }; $("minlen").oninput = renderList;
 $("undo").onclick = undo;
 $("reset").onclick = () => { snap(); ride = []; focusId = null; suggestIdx = 0; layerEvents.clearLayers(); $("sugg").style.display = "none"; invalidate(); renderRide(); renderList(); };
