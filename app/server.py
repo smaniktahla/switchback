@@ -314,7 +314,13 @@ class H(SimpleHTTPRequestHandler):
                 import_legacy_roads(uid); STORE.x("DELETE FROM settings WHERE k='setup_code'")
                 return ok_json(self, {"ok": True}, cookie=self.cookie(STORE.new_session(uid)))
             if p == "/api/login":
-                u = STORE.login(req.get("username", ""), req.get("password", ""), self.ip())
+                try:
+                    u = STORE.login(req.get("username", ""), req.get("password", ""), self.ip())
+                except ApiError:
+                    if os.environ.get("SWITCHBACK_DEBUG_LOGIN") == "1":      # temporary: log only the SHAPE of a failed password, never its content
+                        pw = str(req.get("password", "")); print(f"login debug: user={req.get('username', '')!r} pw_len={len(pw)} non_ascii={sum(ord(c) > 127 for c in pw)} "
+                                                                f"edge_space={pw != pw.strip()} ip={self.ip()} ua={(self.headers.get('User-Agent') or '')[:60]!r}", flush=True)
+                    raise
                 return ok_json(self, {"ok": True}, cookie=self.cookie(STORE.new_session(u["id"])))
             if p == "/api/logout":
                 STORE.drop_session(self.token()); return ok_json(self, {"ok": True}, cookie=self.cookie("", clear=True))

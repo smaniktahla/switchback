@@ -41,11 +41,11 @@ function authCard(title, intro, fields, button, onSubmit, footer = "") {
     <h2>${esc(title)}</h2><p class="mute">${intro}</p>
     ${fields.map(f => f.type === "password"
       ? `<label>${esc(f.label)}${pwInput(`name="${f.name}" autocomplete="${f.ac || "off"}" required`)}</label>`
-      : `<label>${esc(f.label)}<input name="${f.name}" type="${f.type || "text"}" autocomplete="${f.ac || "off"}" ${f.value ? `value="${esc(f.value)}"` : ""} ${f.ro ? "readonly" : ""} required></label>`).join("")}
+      : `<label>${esc(f.label)}<input name="${f.name}" type="${f.type || "text"}" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="${f.ac || "off"}" ${f.value ? `value="${esc(f.value)}"` : ""} ${f.ro ? "readonly" : ""} required></label>`).join("")}
     <div class="err" id="autherr"></div><button class="primary" type="submit">${esc(button)}</button>${footer}</form>`;
   const form = el.querySelector("form"); form.querySelector("input:not([readonly])")?.focus();
   form.onsubmit = async e => {
-    e.preventDefault(); const v = Object.fromEntries(new FormData(form)); $a("autherr").textContent = "";
+    e.preventDefault(); const v = Object.fromEntries([...form.elements].filter(x => x.name).map(x => [x.name, x.value])); $a("autherr").textContent = "";
     try { await onSubmit(v); } catch (err) { $a("autherr").textContent = err.message; }
   };
 }
