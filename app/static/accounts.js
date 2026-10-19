@@ -45,7 +45,7 @@ function authCard(title, intro, fields, button, onSubmit, footer = "") {
     <div class="err" id="autherr"></div><button class="primary" type="submit">${esc(button)}</button>${footer}</form>`;
   const form = el.querySelector("form"); form.querySelector("input:not([readonly])")?.focus();
   form.onsubmit = async e => {
-    e.preventDefault(); const v = Object.fromEntries([...form.elements].filter(x => x.name).map(x => [x.name, x.value])); $a("autherr").textContent = "";
+    e.preventDefault(); const v = Object.fromEntries([...form.elements].filter(x => x.name).map(x => [x.name, x.name === "username" ? x.value.trim() : x.value])); $a("autherr").textContent = "";
     try { await onSubmit(v); } catch (err) { $a("autherr").textContent = err.message; }
   };
 }
