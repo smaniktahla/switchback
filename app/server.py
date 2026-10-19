@@ -309,12 +309,18 @@ class H(SimpleHTTPRequestHandler):
                 if not AUTH_ON or STORE.user_count():
                     raise ApiError(409, "Setup is already done.")
                 if not STORE.check_setup_code(req.get("code")):
-                    raise ApiError(403, "Wrong setup code. Look for it in the server log or in the data folder.")
+                    raise ApiError(403, "Wrong setup code. Look for it in the server log.")
                 uid = STORE.create_user(req.get("username", ""), req.get("password", ""), "admin")
                 import_legacy_roads(uid); STORE.x("DELETE FROM settings WHERE k='setup_code'")
                 return ok_json(self, {"ok": True}, cookie=self.cookie(STORE.new_session(uid)))
             if p == "/api/login":
-                u = STORE.login(req.get("username", ""), req.get("password", ""), self.ip())
+                try:
+                    u = STORE.login(req.get("username", ""), req.get("password", ""), self.ip())
+                except ApiError:
+                    if os.environ.get("SWITCHBACK_DEBUG_LOGIN") == "1":      # temporary: log only the SHAPE of a failed password, never its content
+                        pw = str(req.get("password", "")); print(f"login debug: user={req.get('username', '')!r} pw_len={len(pw)} non_ascii={sum(ord(c) > 127 for c in pw)} "
+                                                                f"edge_space={pw != pw.strip()} ip={self.ip()} ua={(self.headers.get('User-Agent') or '')[:60]!r}", flush=True)
+                    raise
                 return ok_json(self, {"ok": True}, cookie=self.cookie(STORE.new_session(u["id"])))
             if p == "/api/logout":
                 STORE.drop_session(self.token()); return ok_json(self, {"ok": True}, cookie=self.cookie("", clear=True))

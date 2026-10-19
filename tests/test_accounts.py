@@ -125,3 +125,13 @@ def test_shared_roads_and_permissions(srv):
 def test_password_hashing_unit():
     sys.path.insert(0, str(APP)); import store
     h = store.hash_password("hunter2hunter2"); assert store.check_password("hunter2hunter2", h) and not store.check_password("x", h) and "hunter2" not in h
+
+
+def test_username_whitespace_is_trimmed(srv):
+    m, port = srv; m.STORE.fails.clear()
+    assert Client(port).post("/api/login", {"username": "  BOSS \n", "password": "correct horse battery"})[0] == 200      # case-insensitive and trimmed
+    assert Client(port).post("/api/login", {"username": "boss", "password": "correct horse battery "})[0] == 401          # passwords are never trimmed
+    m.STORE.fails.clear()
+    admin = Client(port); admin.post("/api/login", {"username": "boss", "password": "correct horse battery"})
+    assert admin.post("/api/users/create", {"username": "  trimmed.user ", "password": "some long password", "role": "rider"})[0] == 200
+    assert Client(port).post("/api/login", {"username": "trimmed.user", "password": "some long password"})[0] == 200

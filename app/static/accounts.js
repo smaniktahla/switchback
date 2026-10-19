@@ -10,6 +10,18 @@ async function api(path, body) {
 }
 const $a = id => document.getElementById(id);
 
+// Password fields get a Show/Hide button (handy when a password has to be typed from another device) and a warning
+// when the value starts or ends with a space, a common result of copy and paste.
+const pwInput = (attrs = "") => `<span class="pw"><input type="password" autocapitalize="off" autocorrect="off" spellcheck="false" ${attrs}><button type="button" class="eye" aria-label="Show password">Show</button></span><span class="pwwarn"></span>`;
+document.addEventListener("click", e => {
+  const b = e.target.closest(".eye"); if (!b) return;
+  const i = b.parentElement.querySelector("input"), show = i.type === "password"; i.type = show ? "text" : "password"; b.textContent = show ? "Hide" : "Show"; b.setAttribute("aria-label", show ? "Hide password" : "Show password");
+});
+document.addEventListener("input", e => {
+  const i = e.target; if (!i.closest || !i.closest(".pw")) return;
+  const w = i.closest(".pw").nextElementSibling; if (w && w.classList.contains("pwwarn")) w.textContent = i.value && i.value !== i.value.trim() ? "Note: there is a space at the start or end of this password." : "";
+});
+
 // ---- preferences live on the account (units, home); old browser-only values are migrated on first sign-in
 async function savePrefs() { try { await api("/api/prefs", {prefs: PREFS}); } catch {} }
 function migrateLocalPrefs() {
@@ -27,11 +39,13 @@ function authCard(title, intro, fields, button, onSubmit, footer = "") {
   const el = $a("auth"); el.style.display = "flex";
   el.innerHTML = `<form class="authcard"><img src="logo.png" alt="Switchback" style="width:220px;max-width:70%;align-self:center">
     <h2>${esc(title)}</h2><p class="mute">${intro}</p>
-    ${fields.map(f => `<label>${esc(f.label)}<input name="${f.name}" type="${f.type || "text"}" autocomplete="${f.ac || "off"}" ${f.value ? `value="${esc(f.value)}"` : ""} ${f.ro ? "readonly" : ""} required></label>`).join("")}
+    ${fields.map(f => f.type === "password"
+      ? `<label>${esc(f.label)}${pwInput(`name="${f.name}" autocomplete="${f.ac || "off"}" required`)}</label>`
+      : `<label>${esc(f.label)}<input name="${f.name}" type="${f.type || "text"}" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="${f.ac || "off"}" ${f.value ? `value="${esc(f.value)}"` : ""} ${f.ro ? "readonly" : ""} required></label>`).join("")}
     <div class="err" id="autherr"></div><button class="primary" type="submit">${esc(button)}</button>${footer}</form>`;
   const form = el.querySelector("form"); form.querySelector("input:not([readonly])")?.focus();
   form.onsubmit = async e => {
-    e.preventDefault(); const v = Object.fromEntries(new FormData(form)); $a("autherr").textContent = "";
+    e.preventDefault(); const v = Object.fromEntries([...form.elements].filter(x => x.name).map(x => [x.name, x.name === "username" ? x.value.trim() : x.value])); $a("autherr").textContent = "";
     try { await onSubmit(v); } catch (err) { $a("autherr").textContent = err.message; }
   };
 }
@@ -42,7 +56,7 @@ async function boot() {
   const q = new URLSearchParams(location.search);
   const clean = () => history.replaceState(null, "", location.pathname);
   if (STATE.setup) {
-    return authCard("Welcome to Switchback", "Create the admin account for this server. The setup code is printed in the server log when it first starts (and saved in the data folder as it runs).",
+    return authCard("Welcome to Switchback", "Create the admin account for this server. The setup code is printed in the server log when it first starts.",
       [{name: "code", label: "Setup code"}, {name: "username", label: "Admin username", ac: "username"}, {name: "password", label: "Password (" + pwHint + ")", type: "password", ac: "new-password"}],
       "Create admin account", async v => { await api("/api/setup", v); location.reload(); });
   }
@@ -102,7 +116,7 @@ function settingsAccount(body) {
   body.innerHTML = `<h3>${esc(STATE.user.username)} <span class="mute">${esc(STATE.user.role)}</span></h3>
     <div class="grp"><b>Units</b><label><input type="radio" name="u" value="mi" ${units === "mi" ? "checked" : ""}> Miles</label><label><input type="radio" name="u" value="km" ${units === "km" ? "checked" : ""}> Kilometres</label></div>
     <div class="grp"><b>Home</b><div class="mute">${home ? esc(home.label || "saved") : "Not set. Search an address on the main screen and press “Save as home”."}</div>${home ? `<button id="clearhome">Clear home</button>` : ""}</div>
-    ${STATE.auth ? `<div class="grp"><b>Change password</b><input id="pw0" type="password" placeholder="Current password" autocomplete="current-password"><input id="pw1" type="password" placeholder="New password (${pwHint})" autocomplete="new-password"><button id="pwgo">Change password</button><div id="pwmsg"></div></div>
+    ${STATE.auth ? `<div class="grp"><b>Change password</b>Current password${pwInput(`id="pw0" autocomplete="current-password"`)}New password (${pwHint})${pwInput(`id="pw1" autocomplete="new-password"`)}<button id="pwgo">Change password</button><div id="pwmsg"></div></div>
     <div class="grp"><button id="signout">Sign out</button></div>` : `<p class="mute">Single-user mode: no sign-in is needed on this computer.</p>`}`;
   body.querySelectorAll("[name=u]").forEach(r => r.onchange = () => { units = r.value; PREFS.units = units; savePrefs(); try { unitBtn(); renderList(); renderRide(); if (route) { showTotals(route); showMsg(route); } } catch {} });
   $a("clearhome")?.addEventListener("click", () => { delete PREFS.home; savePrefs(); try { $a("gohome").disabled = true; if (homeMarker) { map.removeLayer(homeMarker); homeMarker = null; } } catch {} settingsAccount(body); });

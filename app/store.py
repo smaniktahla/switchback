@@ -129,6 +129,7 @@ class Store:
         return d
 
     def create_user(self, username, pw, role="rider"):
+        username = (username or "").strip()          # a stray space from a phone keyboard or paste is never part of a username
         validate_username(username); validate_password(pw, username)
         if role not in ("admin", "rider"):
             raise ApiError(400, "Role must be admin or rider.")
@@ -187,7 +188,8 @@ class Store:
 
     # ---- login with simple lockout (5 failures -> 15 minutes, per client + username)
     def login(self, username, pw, ip):
-        key = (ip, (username or "").lower())
+        username = (username or "").strip()
+        key = (ip, username.lower())
         now = time.time()
         f = self.fails.get(key)
         if f and f[1] > now:
