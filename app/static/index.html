@@ -70,8 +70,11 @@
   .tbl tr.off td { opacity:.55; } .acts { display:flex; flex-wrap:wrap; gap:4px; } .acts button { font-size:12px; padding:2px 7px; }
   .copy { display:flex; gap:6px; margin-top:6px; width:100%; } .copy input { flex:1; font-size:12px; }
   #tabs, #mapcard { display:none; }
+  #drawbar { position:absolute; z-index:1000; top:52px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.97); border:2px solid #0f766e; border-radius:22px; padding:5px 8px 5px 14px; box-shadow:0 2px 8px rgba(0,0,0,.25); white-space:nowrap; }
+  #drawbar span { font-weight:600; color:#0f766e; } #drawbar button { padding:4px 12px; }
   #draw.floating { position:absolute; z-index:1100; left:8px; right:8px; bottom:10px; margin:0 !important; box-shadow:0 2px 14px rgba(0,0,0,.3); }
   @media (max-width:900px) {
+    #drawbar { display:none !important; }   /* phones have the same controls in the sheet at the bottom */
     html, body { height:100dvh; } #app { flex-direction:column; height:100dvh; }
     #side, #ride, #map { width:100%; max-width:none; flex:1; min-height:0; border:0; height:auto; }
     #side { overflow:hidden; } #ride { border-top:2px solid var(--accent); }
@@ -115,7 +118,8 @@
       <div id="list"></div>
     </div>
     </div>
-  <div id="map"><div id="totals" style="display:none"></div><div id="mapcard" style="display:none"></div></div>
+  <div id="map"><div id="totals" style="display:none"></div><div id="mapcard" style="display:none"></div>
+    <div id="drawbar" style="display:none"><span id="drawcount"></span><button id="drawundo2" title="Remove the last waypoint (Backspace)">⌫ Delete last point</button><button id="drawcancel2">Cancel</button></div></div>
   <div id="ride">
     <h2 style="display:flex;justify-content:space-between;align-items:center"><span>My ride <div class="mute" id="ridesum"></div></span><span style="white-space:nowrap"><button id="undo" title="Undo the last change to the ride" disabled>↶ Undo</button> <button id="reset" title="Clear the ride and route (keeps your start point)">Reset</button></span></h2>
     <div id="items" class="mute">Add roads from the list or by clicking one on the map.</div>
@@ -429,6 +433,8 @@ function drawRedraw() {
     m.on("contextmenu", () => { drawPts.splice(i, 1); drawRedraw(); drawPreview(); });      // right-click or long-press a point to delete just that one
   });
   $("drawsave").disabled = !drawResult; $("drawundo").disabled = !drawPts.length;
+  $("drawbar").style.display = drawMode ? "flex" : "none"; $("drawundo2").disabled = !drawPts.length;
+  $("drawcount").textContent = `${drawPts.length} point${drawPts.length === 1 ? "" : "s"}`;
   $("drawinfo").textContent = !drawPts.length ? "Click along the road to add points: the start, any points in between to keep it on the right road, then the end. Drag the map to move around, scroll to zoom, drag a point to move it, right-click or long-press a point to delete it." : drawResult ? `${D(drawResult.km)} highlighted. Add more points to correct the path, or name it and save.` : "Click along the road to add points: the start, any points in between to keep it on the right road, then the end. Drag the map to move around, scroll to zoom, drag a point to move it, right-click or long-press a point to delete it.";
 }
 async function drawPreview() {
@@ -440,13 +446,13 @@ async function drawPreview() {
   drawRedraw();
 }
 const drawHome = {parent: $("draw").parentNode, next: $("draw").nextSibling};
-["draw", "mapcard", "totals"].forEach(id => { L.DomEvent.disableClickPropagation($(id)); L.DomEvent.disableScrollPropagation($(id)); });   // taps on these must not reach the map underneath
+["draw", "mapcard", "totals", "drawbar"].forEach(id => { L.DomEvent.disableClickPropagation($(id)); L.DomEvent.disableScrollPropagation($(id)); });   // taps on these must not reach the map underneath
 function drawStart() {
   if (isMobile()) { setPane("map"); $("map").appendChild($("draw")); $("draw").classList.add("floating"); }   // phone: controls ride on top of the map
   drawMode = true; map.doubleClickZoom.disable(); drawPts = []; drawResult = null; $("draw").style.display = "block"; map.getContainer().style.cursor = "crosshair"; $("drawname").value = ""; drawRedraw(); }
 function drawEnd() {
   if ($("draw").classList.contains("floating")) { $("draw").classList.remove("floating"); drawHome.parent.insertBefore($("draw"), drawHome.next); }
-  drawMode = false; map.doubleClickZoom.enable(); drawSeq++; drawPts = []; drawResult = null; drawLayer.clearLayers(); $("draw").style.display = "none"; map.getContainer().style.cursor = ""; }
+  drawMode = false; map.doubleClickZoom.enable(); $("drawbar").style.display = "none"; drawSeq++; drawPts = []; drawResult = null; drawLayer.clearLayers(); $("draw").style.display = "none"; map.getContainer().style.cursor = ""; }
 let mapDown = null;      // where/when the mouse went down: a press that moved or lingered was a pan, not a click
 map.on("mousedown", e => { mapDown = {x: e.originalEvent.clientX, y: e.originalEvent.clientY, t: Date.now()}; });
 const drawAdd = (ll, ev) => {
@@ -455,7 +461,7 @@ const drawAdd = (ll, ev) => {
   drawPts.push([ll.lng, ll.lat]); drawRedraw(); drawPreview();
 };
 $("adddraw").onclick = () => drawMode ? drawEnd() : drawStart();
-$("drawcancel").onclick = drawEnd;
+$("drawcancel").onclick = drawEnd; $("drawcancel2").onclick = drawEnd; $("drawundo2").onclick = () => $("drawundo").click();
 $("drawundo").onclick = () => { drawPts.pop(); drawRedraw(); drawPreview(); };
 $("drawsave").onclick = async () => {
   const name = $("drawname").value.trim(); if (!name) { $("drawinfo").textContent = "Give the road a name first."; $("drawname").focus(); return; }
