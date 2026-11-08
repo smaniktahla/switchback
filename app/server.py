@@ -150,12 +150,23 @@ def custom_candidate(name, line):
             "ext_end": None, "ext_start": None, "events": {"hard": []}}
 
 
+_TRACE_CACHE = {}
+
+
+def trace_leg(a, b):
+    key = (round(a[0], 5), round(a[1], 5), round(b[0], 5), round(b[1], 5))      # adding a point only needs the new leg routed
+    if key not in _TRACE_CACHE:
+        if len(_TRACE_CACHE) > 500:
+            _TRACE_CACHE.clear()
+        co, d, _t = gh_route(a, b, "car"); _TRACE_CACHE[key] = ([c[:2] for c in co], d)
+    return _TRACE_CACHE[key]
+
+
 def trace(points):
     """Follow the roads between the clicked points (plain car routing) and return the joined line."""
     line, km = [], 0.0
     for a, b in zip(points, points[1:]):
-        co, d, _t = gh_route(a, b, "car")
-        co = [c[:2] for c in co]
+        co, d = trace_leg(a, b)
         line += co[1:] if line else co; km += d / 1000
     return line, km
 
