@@ -70,6 +70,7 @@
   .tbl tr.off td { opacity:.55; } .acts { display:flex; flex-wrap:wrap; gap:4px; } .acts button { font-size:12px; padding:2px 7px; }
   .copy { display:flex; gap:6px; margin-top:6px; width:100%; } .copy input { flex:1; font-size:12px; }
   #tabs, #mapcard { display:none; }
+  #draw.floating { position:absolute; z-index:1100; left:8px; right:8px; bottom:10px; margin:0 !important; box-shadow:0 2px 14px rgba(0,0,0,.3); }
   @media (max-width:900px) {
     html, body { height:100dvh; } #app { flex-direction:column; height:100dvh; }
     #side, #ride, #map { width:100%; max-width:none; flex:1; min-height:0; border:0; height:auto; }
@@ -99,7 +100,7 @@
       <div id="draw" style="display:none;margin-top:8px;padding:8px;border:1px dashed var(--accent);border-radius:8px;background:#fff7f0">
         <div class="mute" id="drawinfo">Click along the road you want to add: the start, any points in between to keep it on the right road, then the end.</div>
         <div class="row"><input id="drawname" type="text" placeholder="Name (e.g. Old Rag Road)"></div>
-        <div class="row"><button id="drawundo">Undo point</button><button id="drawsave" class="primary" disabled>Save road</button><button id="drawcancel">Cancel</button></div>
+        <div class="row"><button id="drawundo" title="Remove the last waypoint (Backspace)">⌫ Delete last point</button><button id="drawsave" class="primary" disabled>Save road</button><button id="drawcancel">Cancel</button></div>
       </div>
       <div class="row mute"><span id="startlbl">Tap or click the map to set your start.</span></div>
       <div class="row"><label class="mute" style="white-space:nowrap">Min length <b id="minv"></b></label><input id="minlen" type="range" min="0" max="12" step="0.5" value="3" style="flex:1"></div>
@@ -425,9 +426,10 @@ function drawRedraw() {
     const m = L.marker([p[1], p[0]], {draggable:true, bubblingMouseEvents:false, icon: L.divIcon({className:"", iconSize:[16,16], iconAnchor:[8,8],
       html:`<div style="width:16px;height:16px;border-radius:50%;border:3px solid #0f766e;background:${i === 0 ? "#fff" : "#0f766e"};box-shadow:0 0 0 2px #fff"></div>`})}).addTo(drawLayer);
     m.on("dragend", () => { const q = m.getLatLng(); drawPts[i] = [q.lng, q.lat]; drawPreview(); });
+    m.on("contextmenu", () => { drawPts.splice(i, 1); drawRedraw(); drawPreview(); });      // right-click or long-press a point to delete just that one
   });
-  $("drawsave").disabled = !drawResult;
-  $("drawinfo").textContent = drawResult ? `${D(drawResult.km)} highlighted. Add more points to correct the path, or name it and save.` : "Click along the road to add points: the start, any points in between to keep it on the right road, then the end. Drag the map to move around, scroll to zoom, drag a point to move it.";
+  $("drawsave").disabled = !drawResult; $("drawundo").disabled = !drawPts.length;
+  $("drawinfo").textContent = !drawPts.length ? "Click along the road to add points: the start, any points in between to keep it on the right road, then the end. Drag the map to move around, scroll to zoom, drag a point to move it, right-click or long-press a point to delete it." : drawResult ? `${D(drawResult.km)} highlighted. Add more points to correct the path, or name it and save.` : "Click along the road to add points: the start, any points in between to keep it on the right road, then the end. Drag the map to move around, scroll to zoom, drag a point to move it, right-click or long-press a point to delete it.";
 }
 async function drawPreview() {
   const seq = ++drawSeq; drawResult = null;
@@ -437,8 +439,14 @@ async function drawPreview() {
   }
   drawRedraw();
 }
-function drawStart() { drawMode = true; map.doubleClickZoom.disable(); drawPts = []; drawResult = null; $("draw").style.display = "block"; map.getContainer().style.cursor = "crosshair"; $("drawname").value = ""; drawRedraw(); }
-function drawEnd() { drawMode = false; map.doubleClickZoom.enable(); drawSeq++; drawPts = []; drawResult = null; drawLayer.clearLayers(); $("draw").style.display = "none"; map.getContainer().style.cursor = ""; }
+const drawHome = {parent: $("draw").parentNode, next: $("draw").nextSibling};
+["draw", "mapcard", "totals"].forEach(id => { L.DomEvent.disableClickPropagation($(id)); L.DomEvent.disableScrollPropagation($(id)); });   // taps on these must not reach the map underneath
+function drawStart() {
+  if (isMobile()) { setPane("map"); $("map").appendChild($("draw")); $("draw").classList.add("floating"); }   // phone: controls ride on top of the map
+  drawMode = true; map.doubleClickZoom.disable(); drawPts = []; drawResult = null; $("draw").style.display = "block"; map.getContainer().style.cursor = "crosshair"; $("drawname").value = ""; drawRedraw(); }
+function drawEnd() {
+  if ($("draw").classList.contains("floating")) { $("draw").classList.remove("floating"); drawHome.parent.insertBefore($("draw"), drawHome.next); }
+  drawMode = false; map.doubleClickZoom.enable(); drawSeq++; drawPts = []; drawResult = null; drawLayer.clearLayers(); $("draw").style.display = "none"; map.getContainer().style.cursor = ""; }
 let mapDown = null;      // where/when the mouse went down: a press that moved or lingered was a pan, not a click
 map.on("mousedown", e => { mapDown = {x: e.originalEvent.clientX, y: e.originalEvent.clientY, t: Date.now()}; });
 const drawAdd = (ll, ev) => {
@@ -455,7 +463,11 @@ $("drawsave").onclick = async () => {
   if (!r.ok) { $("drawinfo").textContent = "Could not save: " + j.error; return; }
   drawEnd(); await loadData(false); focus(j.id, true);
 };
-document.addEventListener("keydown", e => { if (e.key === "Escape" && drawMode) drawEnd(); });
+document.addEventListener("keydown", e => {
+  if (!drawMode) return;
+  if (e.key === "Escape") drawEnd();
+  else if ((e.key === "Backspace" || e.key === "Delete") && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); $("drawundo").click(); }
+});
 
 // a click that lands on a road, the route or any other drawn shape must never move the start
 map.on("click", e => drawMode ? drawAdd(e.latlng, e.originalEvent) : (e.originalEvent.target.closest && e.originalEvent.target.closest(".leaflet-interactive, .leaflet-marker-icon")) ? null : pickFinish ? setFinish(e.latlng.lng, e.latlng.lat) : setStart(e.latlng.lng, e.latlng.lat));
