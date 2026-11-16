@@ -53,6 +53,10 @@ The application is designed for self-hosting, without requiring a commercial mot
 
 ---
 
+### Plan a ride on your phone
+
+On screens up to 900 px wide, use the bottom **Map**, **Roads**, and **My ride** tabs. Tap a road on the map to see its score and length and add it to your ride. **Find a road for me** and **Next** open the same road card on the map. On phones, **Use my location** requires HTTPS. ([#2](https://github.com/smaniktahla/switchback/pull/2))
+
 ## Screenshots
 
 *Application screenshots coming soon.*
@@ -247,4 +251,6 @@ Always observe applicable laws, ride within sight distance and conditions, and v
 **Switchback — because the best part of the ride isn't always the destination.**
 
 ## Accounts
-Multi-user by default: the first run prints a setup code for creating the admin; admins invite people with links. See `docs/ACCOUNTS.md`. Set `SWITCHBACK_AUTH=off` for single-user mode. Roadmap: `docs/ROADMAP.md`.
+Switchback starts in multi-user mode. The server log prints a one-time setup code for creating the first admin. Admins can invite riders, manage accounts, and issue password resets. Riders can store units and home location in their account settings.
+
+Hand-added roads are shared by default and show who added them. Riders can keep their own roads private, and admins can set the server default and moderate shared roads. Set `SWITCHBACK_AUTH=off` for single-user use on localhost. See [Accounts](docs/ACCOUNTS.md) for setup and [Roadmap](docs/ROADMAP.md) for upcoming work. ([#1](https://github.com/smaniktahla/switchback/pull/1))
